@@ -26,6 +26,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+Se the action in ... action [#1](https://github.com/probot/example-github-action/issues/1)
+
 ## How it works
 
 The Probot application function is defined in [`app.js`](app.js).
