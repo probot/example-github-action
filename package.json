@@ -21,6 +21,9 @@
     "uvu": "^0.5.1"
   },
   "release": {
+    "branches": [
+      "main"
+    ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
