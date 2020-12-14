@@ -11,7 +11,7 @@
   "license": "ISC",
   "repository": "https://github.com/probot/example-github-action",
   "dependencies": {
-    "probot": "^11.0.0-beta.2"
+    "probot": "^11.0.0-beta.3"
   },
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",
