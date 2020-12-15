@@ -9054,7 +9054,7 @@ const get_authenticated_octokit_1 = __webpack_require__(956);
  * to wait for the magic to happen.
  *
  * ```js
- *  module.exports = ({ app }) => {
+ *  module.exports = (app) => {
  *    app.on('issues.opened', async context => {
  *      const octokit = await app.auth();
  *    });
@@ -12467,7 +12467,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultApp = void 0;
 const path_1 = __importDefault(__webpack_require__(622));
-function defaultApp({ app, getRouter, }) {
+function defaultApp(app, { getRouter }) {
     if (!getRouter) {
         throw new Error("getRouter() is required for defaultApp");
     }
@@ -14012,8 +14012,7 @@ class Server {
         this.expressApp.get("/ping", (req, res) => res.end("PONG"));
     }
     async load(appFn) {
-        await appFn({
-            app: this.probotApp,
+        await appFn(this.probotApp, {
             getRouter: (path) => this.router(path),
         });
     }
@@ -17572,7 +17571,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var yaml = _interopDefault(__webpack_require__(186));
 
-const VERSION = "1.0.0";
+const VERSION = "1.0.1";
 
 function _defineProperty(obj, key, value) {
   if (key in obj) {
@@ -18168,7 +18167,7 @@ class Command {
      *
      * @private
      * @param {Function} resolve The resolve function of the Promise
-     * @returns {Function} A funtion to transform and resolve a value
+     * @returns {Function} A function to transform and resolve a value
      * @memberof Command
      */
     _convertValue(resolve) {
@@ -29050,7 +29049,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VERSION = void 0;
 // The version is set automatically before publish to npm
-exports.VERSION = "11.0.0-beta.2";
+exports.VERSION = "11.0.0";
 //# sourceMappingURL=version.js.map
 
 /***/ }),
@@ -46346,7 +46345,7 @@ class Probot {
             }
             return;
         }
-        return appFn({ app: this });
+        return appFn(this, {});
     }
 }
 exports.Probot = Probot;
@@ -51051,6 +51050,7 @@ const standard_as_callback_1 = __webpack_require__(207);
 exports.kExec = Symbol("exec");
 exports.kCallbacks = Symbol("callbacks");
 exports.notAllowedAutoPipelineCommands = [
+    "auth",
     "info",
     "script",
     "quit",
@@ -53912,7 +53912,7 @@ const child_process_1 = __webpack_require__(129);
 const update_dotenv_1 = __importDefault(__webpack_require__(157));
 const manifest_creation_1 = __webpack_require__(967);
 const logging_middleware_1 = __webpack_require__(156);
-const setupAppFactory = (host, port) => async function setupApp({ app, getRouter, }) {
+const setupAppFactory = (host, port) => async function setupApp(app, { getRouter }) {
     const setup = new manifest_creation_1.ManifestCreation();
     // If not on Glitch or Production, create a smee URL
     if (process.env.NODE_ENV !== "production" &&
@@ -67891,6 +67891,7 @@ Redis.prototype.connect = function (callback) {
             reject(new Error("Redis is already connecting/connected"));
             return;
         }
+        clearInterval(this._addedScriptHashesCleanInterval);
         this._addedScriptHashesCleanInterval = setInterval(() => {
             this._addedScriptHashes = {};
         }, this.options.maxScriptsCachingTime);
@@ -68847,6 +68848,7 @@ class Cluster extends events_1.EventEmitter {
                 reject(new Error("Redis is already connecting/connected"));
                 return;
             }
+            clearInterval(this._addedScriptHashesCleanInterval);
             this._addedScriptHashesCleanInterval = setInterval(() => {
                 this._addedScriptHashes = {};
             }, this.options.maxScriptsCachingTime);
@@ -76689,7 +76691,7 @@ const default_1 = __webpack_require__(202);
 const resolve_app_function_1 = __webpack_require__(832);
 /**
  *
- * @param appFnOrArgv set to either a probot application function: `({ app }) => { ... }` or to process.argv
+ * @param appFnOrArgv set to either a probot application function: `(app) => { ... }` or to process.argv
  */
 async function run(appFnOrArgv, additionalOptions) {
     __webpack_require__(175).config();
@@ -76748,7 +76750,7 @@ async function run(appFnOrArgv, additionalOptions) {
     }
     if (Array.isArray(appFnOrArgv)) {
         const pkg = await pkg_conf_1.default("probot");
-        const combinedApps = async ({ app }) => {
+        const combinedApps = async (app) => {
             await server.load(default_1.defaultApp);
             if (Array.isArray(pkg.apps)) {
                 for (const appPath of pkg.apps) {
@@ -77977,9 +77979,9 @@ exports.noop = noop;
 /***/ (function(module) {
 
 /**
- * @param { {app: import('probot').Probot} } app
+ * @param {import('probot').Probot} app
  */
-module.exports = ({ app }) => {
+module.exports = (app) => {
   app.log("Yay! The app was loaded!");
 
   app.on("issues.opened", async (context) => {
