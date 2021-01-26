@@ -11,6 +11,7 @@
   "license": "ISC",
   "repository": "https://github.com/probot/example-github-action",
   "dependencies": {
+    "@actions/core": "^1.2.6",
     "probot": "^11.0.6"
   },
   "devDependencies": {
