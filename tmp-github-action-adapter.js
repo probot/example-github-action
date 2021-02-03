@@ -1,4 +1,4 @@
-module.export = run;
+module.exports = { run };
 
 const { createProbot } = require("probot");
 const pino = require("pino");
