@@ -1,7 +1,9 @@
 module.export = run;
 
 const { createProbot } = require("probot");
-const core = require("@actions/core");
+const pino = require("pino");
+
+const { gitHubActionTransport } = require("./tmp-pino-transport");
 
 async function run(app) {
   if (!process.env.GITHUB_TOKEN) {
@@ -27,12 +29,7 @@ async function run(app) {
   const probot = createProbot({
     overrides: {
       githubToken: process.env.GITHUB_TOKEN,
-      log: {
-        debug: (...args) => core.debug(...args),
-        info: (...args) => core.info(...args),
-        warn: (...args) => core.warning(...args),
-        error: (...args) => core.error(...args),
-      },
+      log: pino({ level: process.env.LOG_LEVEL }, gitHubActionTransport),
     },
   });
 

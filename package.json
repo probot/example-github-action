@@ -4,7 +4,7 @@
   "private": true,
   "description": "Probot & GitHub Action example",
   "scripts": {
-    "test": "node test.js",
+    "test": "node test/app.test.js",
     "build": "ncc build index.js -o dist"
   },
   "author": "Gregor Martynus (https://twitter.com/gr2m)",
@@ -12,7 +12,10 @@
   "repository": "https://github.com/probot/example-github-action",
   "dependencies": {
     "@actions/core": "^1.2.6",
-    "probot": "^11.0.6"
+    "chalk": "^4.1.0",
+    "pino": "^6.11.0",
+    "probot": "^11.0.6",
+    "through2": "^4.0.2"
   },
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",

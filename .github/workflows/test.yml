@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  test:
+  integration:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,3 +15,13 @@ jobs:
       - uses: actions/setup-node@v1
       - run: npm ci
       - run: npm test
+  createComment:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - run: npm ci
+      - run: node test/test-app.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
