@@ -3,6 +3,7 @@ const { inspect } = require("util");
 const through = require("through2");
 const core = require("@actions/core");
 const pino = require("pino");
+const chalk = require("chalk");
 
 const LEVEL_TO_ACTIONS_CORE_LOG_METHOD = {
   trace: "debug",
