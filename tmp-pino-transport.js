@@ -23,7 +23,12 @@ const gitHubActionTransport = through.obj(function (chunk, enc, cb) {
     chalk.whiteBright.bold(msg),
     chalk.blackBright(inspect(meta, { depth: Infinity })),
   ].join(" ");
-  core[logMethodName](output);
+
+  if (logMethodName in core) {
+    core[logMethodName](output);
+  } else {
+    core.error(`"${level}" is not a known log level - ${output}`);
+  }
 
   cb();
 });
