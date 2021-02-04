@@ -16,7 +16,7 @@ const LEVEL_TO_ACTIONS_CORE_LOG_METHOD = {
 
 const gitHubActionTransport = through.obj(function (chunk, enc, cb) {
   const { level, hostname, pid, msg, ...meta } = JSON.parse(chunk);
-  const levelLabel = level || pino.levels.labels[level];
+  const levelLabel = pino.levels.labels[level] || level;
   const logMethodName = LEVEL_TO_ACTIONS_CORE_LOG_METHOD[levelLabel];
 
   const output = [
