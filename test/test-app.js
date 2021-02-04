@@ -16,7 +16,7 @@ async function app(app) {
   app.log.warn("This is a warning message");
 
   app.on("push", async (context) => {
-    await octokit.request(
+    await context.octokit.request(
       "POST /repos/{owner}/{repo}/commits/{commit_sha}/comments",
       context.repo({
         commit_sha: context.payload.head_commit.id,

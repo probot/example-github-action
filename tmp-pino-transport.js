@@ -19,10 +19,7 @@ const gitHubActionTransport = through.obj(function (chunk, enc, cb) {
   const levelLabel = pino.levels.labels[level] || level;
   const logMethodName = LEVEL_TO_ACTIONS_CORE_LOG_METHOD[levelLabel];
 
-  const output = [
-    chalk.whiteBright.bold(msg),
-    chalk.blackBright(inspect(meta, { depth: Infinity })),
-  ].join(" ");
+  const output = [msg, inspect(meta, { depth: Infinity })].join("\n");
 
   if (logMethodName in core) {
     core[logMethodName](output);

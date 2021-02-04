@@ -12,7 +12,6 @@
   "repository": "https://github.com/probot/example-github-action",
   "dependencies": {
     "@actions/core": "^1.2.6",
-    "chalk": "^4.1.0",
     "pino": "^6.11.0",
     "probot": "^11.0.6",
     "through2": "^4.0.2"
