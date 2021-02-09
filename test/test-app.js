@@ -2,10 +2,7 @@
 const { relative } = require("path");
 const { run } = require("../tmp-github-action-adapter");
 
-run(app).catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+run(app);
 
 /**
  * @param {import('probot').Probot} app

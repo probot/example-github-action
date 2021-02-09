@@ -11,10 +11,7 @@
   "license": "ISC",
   "repository": "https://github.com/probot/example-github-action",
   "dependencies": {
-    "@actions/core": "^1.2.6",
-    "pino": "^6.11.0",
-    "probot": "^11.0.6",
-    "through2": "^4.0.2"
+    "@probot/adapter-github-actions": "github:probot/adapter-github-actions#probot-v11"
   },
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",
@@ -41,5 +38,8 @@
       ],
       "@semantic-release/github"
     ]
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }
