@@ -3646,6 +3646,7 @@ exports.Scope = scope_1.Scope;
 var session_1 = __webpack_require__(654);
 exports.Session = session_1.Session;
 var hub_1 = __webpack_require__(152);
+// eslint-disable-next-line deprecation/deprecation
 exports.getActiveDomain = hub_1.getActiveDomain;
 exports.getCurrentHub = hub_1.getCurrentHub;
 exports.getHubFromCarrier = hub_1.getHubFromCarrier;
@@ -7618,7 +7619,41 @@ exports.default = _default;
 
 /***/ }),
 /* 101 */,
-/* 102 */,
+/* 102 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+// For internal use, subject to change.
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fs = __importStar(__webpack_require__(747));
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(469);
+function issueCommand(command, message) {
+    const filePath = process.env[`GITHUB_${command}`];
+    if (!filePath) {
+        throw new Error(`Unable to find environment variable for file command ${command}`);
+    }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Missing file at path: ${filePath}`);
+    }
+    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}
+exports.issueCommand = issueCommand;
+//# sourceMappingURL=file-command.js.map
+
+/***/ }),
 /* 103 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -7935,49 +7970,10 @@ function newObject() {
 /* 104 */
 /***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
 
-const { createProbot } = __webpack_require__(678);
+const { run } = __webpack_require__(295);
 const app = __webpack_require__(964);
 
-run().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
-
-async function run() {
-  if (!process.env.GITHUB_TOKEN) {
-    throw new Error(
-      "[probot/example-github-action] env.GITHUB_TOKEN must be set, see https://github.com/probot/example-github-action#usage"
-    );
-  }
-
-  const envVariablesMissing = [
-    "GITHUB_RUN_ID",
-    "GITHUB_EVENT_NAME",
-    "GITHUB_EVENT_PATH",
-  ].filter((name) => !process.env[name]);
-
-  if (envVariablesMissing.length) {
-    throw new Error(
-      `[probot/example-github-action] GitHub Action default environment variables missing: ${envVariablesMissing.join(
-        ", "
-      )}. See https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables`
-    );
-  }
-
-  const probot = createProbot({
-    overrides: {
-      githubToken: process.env.GITHUB_TOKEN,
-    },
-  });
-
-  await probot.load(app);
-
-  return probot.receive({
-    id: process.env.GITHUB_RUN_ID,
-    name: process.env.GITHUB_EVENT_NAME,
-    payload: require(process.env.GITHUB_EVENT_PATH),
-  });
-}
+run(app);
 
 
 /***/ }),
@@ -10243,9 +10239,9 @@ function isLevelEnabled (logLevel) {
 function mappings (customLevels = null, useOnlyCustomLevels = false) {
   const customNums = customLevels
     ? Object.keys(customLevels).reduce((o, k) => {
-        o[customLevels[k]] = k
-        return o
-      }, {})
+      o[customLevels[k]] = k
+      return o
+    }, {})
     : null
 
   const labels = Object.assign(
@@ -10919,6 +10915,8 @@ module.exports = {"version":"2.19.5"};
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var tslib_1 = __webpack_require__(422);
+/* eslint-disable max-lines */
+var types_1 = __webpack_require__(279);
 var utils_1 = __webpack_require__(514);
 var scope_1 = __webpack_require__(169);
 var session_1 = __webpack_require__(654);
@@ -11221,32 +11219,57 @@ var Hub = /** @class */ (function () {
     /**
      * @inheritDoc
      */
-    Hub.prototype.startSession = function (context) {
-        // End existing session if there's one
-        this.endSession();
-        var _a = this.getStackTop(), scope = _a.scope, client = _a.client;
-        var _b = (client && client.getOptions()) || {}, release = _b.release, environment = _b.environment;
-        var session = new session_1.Session(tslib_1.__assign(tslib_1.__assign({ release: release,
-            environment: environment }, (scope && { user: scope.getUser() })), context));
-        if (scope) {
-            scope.setSession(session);
+    Hub.prototype.captureSession = function (endSession) {
+        if (endSession === void 0) { endSession = false; }
+        // both send the update and pull the session from the scope
+        if (endSession) {
+            return this.endSession();
         }
-        return session;
+        // only send the update
+        this._sendSessionUpdate();
     };
     /**
      * @inheritDoc
      */
     Hub.prototype.endSession = function () {
+        var _a, _b, _c, _d, _e;
+        (_c = (_b = (_a = this.getStackTop()) === null || _a === void 0 ? void 0 : _a.scope) === null || _b === void 0 ? void 0 : _b.getSession()) === null || _c === void 0 ? void 0 : _c.close();
+        this._sendSessionUpdate();
+        // the session is over; take it off of the scope
+        (_e = (_d = this.getStackTop()) === null || _d === void 0 ? void 0 : _d.scope) === null || _e === void 0 ? void 0 : _e.setSession();
+    };
+    /**
+     * @inheritDoc
+     */
+    Hub.prototype.startSession = function (context) {
+        var _a = this.getStackTop(), scope = _a.scope, client = _a.client;
+        var _b = (client && client.getOptions()) || {}, release = _b.release, environment = _b.environment;
+        var session = new session_1.Session(tslib_1.__assign(tslib_1.__assign({ release: release,
+            environment: environment }, (scope && { user: scope.getUser() })), context));
+        if (scope) {
+            // End existing session if there's one
+            var currentSession = scope.getSession && scope.getSession();
+            if (currentSession && currentSession.status === types_1.SessionStatus.Ok) {
+                currentSession.update({ status: types_1.SessionStatus.Exited });
+            }
+            this.endSession();
+            // Afterwards we set the new session on the scope
+            scope.setSession(session);
+        }
+        return session;
+    };
+    /**
+     * Sends the current Session on the scope
+     */
+    Hub.prototype._sendSessionUpdate = function () {
         var _a = this.getStackTop(), scope = _a.scope, client = _a.client;
         if (!scope)
             return;
         var session = scope.getSession && scope.getSession();
         if (session) {
-            session.close();
             if (client && client.captureSession) {
                 client.captureSession(session);
             }
-            scope.setSession();
         }
     };
     /**
@@ -11334,10 +11357,12 @@ function getCurrentHub() {
 exports.getCurrentHub = getCurrentHub;
 /**
  * Returns the active domain, if one exists
- *
+ * @deprecated No longer used; remove in v7
  * @returns The domain, or undefined if there is no active domain
  */
+// eslint-disable-next-line deprecation/deprecation
 function getActiveDomain() {
+    utils_1.logger.warn('Function `getActiveDomain` is deprecated and will be removed in a future version.');
     var sentry = getMainCarrier().__SENTRY__;
     return sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
 }
@@ -11347,8 +11372,9 @@ exports.getActiveDomain = getActiveDomain;
  * @returns discovered hub
  */
 function getHubFromActiveDomain(registry) {
+    var _a, _b, _c;
     try {
-        var activeDomain = getActiveDomain();
+        var activeDomain = (_c = (_b = (_a = getMainCarrier().__SENTRY__) === null || _a === void 0 ? void 0 : _a.extensions) === null || _b === void 0 ? void 0 : _b.domain) === null || _c === void 0 ? void 0 : _c.active;
         // If there's no active domain, just return global hub
         if (!activeDomain) {
             return getHubFromCarrier(registry);
@@ -11391,6 +11417,7 @@ exports.getHubFromCarrier = getHubFromCarrier;
  * This will set passed {@link Hub} on the passed object's __SENTRY__.hub attribute
  * @param carrier object
  * @param hub Hub
+ * @returns A boolean indicating success or failure
  */
 function setHubOnCarrier(carrier, hub) {
     if (!carrier)
@@ -15228,10 +15255,17 @@ function parseURL(url) {
         url = "//" + url;
         parsed = url_1.parse(url, true, true);
     }
+    const options = parsed.query || {};
+    const allowUsernameInURI = options.allowUsernameInURI && options.allowUsernameInURI !== "false";
+    delete options.allowUsernameInURI;
     const result = {};
     if (parsed.auth) {
-        const parsedAuth = parsed.auth.split(":");
-        result.password = parsedAuth[1];
+        const index = parsed.auth.indexOf(":");
+        if (allowUsernameInURI) {
+            result.username =
+                index === -1 ? parsed.auth : parsed.auth.slice(0, index);
+        }
+        result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
     }
     if (parsed.pathname) {
         if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
@@ -15249,7 +15283,7 @@ function parseURL(url) {
     if (parsed.port) {
         result.port = parsed.port;
     }
-    lodash_1.defaults(result, parsed.query);
+    lodash_1.defaults(result, options);
     return result;
 }
 exports.parseURL = parseURL;
@@ -20091,10 +20125,14 @@ try {
   process.cwd()
 } catch (er) {}
 
-var chdir = process.chdir
-process.chdir = function(d) {
-  cwd = null
-  chdir.call(process, d)
+// This check is needed until node.js 12 is required
+if (typeof process.chdir === 'function') {
+  var chdir = process.chdir
+  process.chdir = function (d) {
+    cwd = null
+    chdir.call(process, d)
+  }
+  if (Object.setPrototypeOf) Object.setPrototypeOf(process.chdir, chdir)
 }
 
 module.exports = patch
@@ -20209,7 +20247,7 @@ function patch (fs) {
     }
 
     // This ensures `util.promisify` works as it does for native `fs.read`.
-    read.__proto__ = fs$read
+    if (Object.setPrototypeOf) Object.setPrototypeOf(read, fs$read)
     return read
   })(fs.read)
 
@@ -22739,33 +22777,32 @@ exports.TransactionSamplingMethod = transaction_1.TransactionSamplingMethod;
 /* 280 */
 /***/ (function(module) {
 
-module.exports = register
+module.exports = register;
 
-function register (state, name, method, options) {
-  if (typeof method !== 'function') {
-    throw new Error('method for before hook must be a function')
+function register(state, name, method, options) {
+  if (typeof method !== "function") {
+    throw new Error("method for before hook must be a function");
   }
 
   if (!options) {
-    options = {}
+    options = {};
   }
 
   if (Array.isArray(name)) {
     return name.reverse().reduce(function (callback, name) {
-      return register.bind(null, state, name, callback, options)
-    }, method)()
+      return register.bind(null, state, name, callback, options);
+    }, method)();
   }
 
-  return Promise.resolve()
-    .then(function () {
-      if (!state.registry[name]) {
-        return method(options)
-      }
+  return Promise.resolve().then(function () {
+    if (!state.registry[name]) {
+      return method(options);
+    }
 
-      return (state.registry[name]).reduce(function (method, registered) {
-        return registered.hook.bind(null, method, options)
-      }, method)()
-    })
+    return state.registry[name].reduce(function (method, registered) {
+      return registered.hook.bind(null, method, options);
+    }, method)();
+  });
 }
 
 
@@ -22980,6 +23017,9 @@ class ScanStream extends stream_1.Readable {
         if (this.opt.match) {
             args.push("MATCH", this.opt.match);
         }
+        if (this.opt.type) {
+            args.push("TYPE", this.opt.type);
+        }
         if (this.opt.count) {
             args.push("COUNT", String(this.opt.count));
         }
@@ -23119,7 +23159,68 @@ module.exports.sync = fp => {
 
 
 /***/ }),
-/* 295 */,
+/* 295 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+const ProbotExports = __webpack_require__(678);
+const pino = __webpack_require__(722);
+
+const { transport } = __webpack_require__(665);
+
+module.exports = { ...ProbotExports, run };
+
+async function run(app) {
+  const log = pino({}, transport);
+
+  const githubToken =
+    process.env.GITHUB_TOKEN ||
+    process.env.INPUT_GITHUB_TOKEN ||
+    process.env.INPUT_TOKEN;
+
+  if (!githubToken) {
+    log.error(
+      "[probot/adapter-github-actions] a token must be passed as `env.GITHUB_TOKEN` or `with.GITHUB_TOKEN` or `with.token`, see https://github.com/probot/adapter-github-actions#usage"
+    );
+    return;
+  }
+
+  const envVariablesMissing = [
+    "GITHUB_RUN_ID",
+    "GITHUB_EVENT_NAME",
+    "GITHUB_EVENT_PATH",
+  ].filter((name) => !process.env[name]);
+
+  if (envVariablesMissing.length) {
+    log.error(
+      `[probot/adapter-github-actions] GitHub Action default environment variables missing: ${envVariablesMissing.join(
+        ", "
+      )}. See https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables`
+    );
+    return;
+  }
+
+  const probot = ProbotExports.createProbot({
+    overrides: {
+      githubToken,
+      log,
+    },
+  });
+
+  await probot.load(app);
+
+  return probot
+    .receive({
+      id: process.env.GITHUB_RUN_ID,
+      name: process.env.GITHUB_EVENT_NAME,
+      payload: require(process.env.GITHUB_EVENT_PATH),
+    })
+    .catch((error) => {
+      probot.log.error(error);
+    });
+}
+
+
+/***/ }),
 /* 296 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -23325,7 +23426,7 @@ module.exports = isString;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERSION = "2.6.2";
+const VERSION = "2.9.1";
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -24053,7 +24154,7 @@ var isPlainObject = __webpack_require__(356);
 var nodeFetch = _interopDefault(__webpack_require__(454));
 var requestError = __webpack_require__(463);
 
-const VERSION = "5.4.12";
+const VERSION = "5.4.14";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
@@ -24208,8 +24309,8 @@ var API = /** @class */ (function () {
     function API(dsn, metadata) {
         if (metadata === void 0) { metadata = {}; }
         this.dsn = dsn;
-        this.metadata = metadata;
         this._dsnObject = new utils_1.Dsn(dsn);
+        this.metadata = metadata;
     }
     /** Returns the Dsn object. */
     API.prototype.getDsn = function () {
@@ -24256,7 +24357,7 @@ var API = /** @class */ (function () {
         var dsn = this._dsnObject;
         var header = ["Sentry sentry_version=" + SENTRY_API_VERSION];
         header.push("sentry_client=" + clientName + "/" + clientVersion);
-        header.push("sentry_key=" + dsn.user);
+        header.push("sentry_key=" + dsn.publicKey);
         if (dsn.pass) {
             header.push("sentry_secret=" + dsn.pass);
         }
@@ -24312,7 +24413,7 @@ var API = /** @class */ (function () {
         var auth = {
             // We send only the minimum set of required information. See
             // https://github.com/getsentry/sentry-javascript/issues/2572.
-            sentry_key: dsn.user,
+            sentry_key: dsn.publicKey,
             sentry_version: SENTRY_API_VERSION,
         };
         return utils_1.urlEncode(auth);
@@ -25231,7 +25332,7 @@ function pinoLogger (opts, stream) {
   var responseTimeKey = opts.customAttributeKeys.responseTime || 'responseTime'
   delete opts.customAttributeKeys
 
-  var reqCustomProps = opts.reqCustomProps || {}
+  var customProps = opts.customProps || opts.reqCustomProps || {}
 
   opts.wrapSerializers = 'wrapSerializers' in opts ? opts.wrapSerializers : true
   if (opts.wrapSerializers) {
@@ -25304,8 +25405,8 @@ function pinoLogger (opts, stream) {
 
     var log = logger.child({ [reqKey]: req })
 
-    if (reqCustomProps) {
-      var customPropBindings = (typeof reqCustomProps === 'function') ? reqCustomProps(req, res) : reqCustomProps
+    if (customProps) {
+      var customPropBindings = (typeof customProps === 'function') ? customProps(req, res) : customProps
       log = log.child(customPropBindings)
     }
     req.log = res.log = log
@@ -25613,7 +25714,95 @@ module.exports = { version }
 /* 333 */,
 /* 334 */,
 /* 335 */,
-/* 336 */,
+/* 336 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+const { Transform } = __webpack_require__(574)
+
+function inherits (fn, sup) {
+  fn.super_ = sup
+  fn.prototype = Object.create(sup.prototype, {
+    constructor: { value: fn, enumerable: false, writable: true, configurable: true }
+  })
+}
+
+// create a new export function, used by both the main export and
+// the .ctor export, contains common logic for dealing with arguments
+function through2 (construct) {
+  return (options, transform, flush) => {
+    if (typeof options === 'function') {
+      flush = transform
+      transform = options
+      options = {}
+    }
+
+    if (typeof transform !== 'function') {
+      // noop
+      transform = (chunk, enc, cb) => cb(null, chunk)
+    }
+
+    if (typeof flush !== 'function') {
+      flush = null
+    }
+
+    return construct(options, transform, flush)
+  }
+}
+
+// main export, just make me a transform stream!
+const make = through2((options, transform, flush) => {
+  const t2 = new Transform(options)
+
+  t2._transform = transform
+
+  if (flush) {
+    t2._flush = flush
+  }
+
+  return t2
+})
+
+// make me a reusable prototype that I can `new`, or implicitly `new`
+// with a constructor call
+const ctor = through2((options, transform, flush) => {
+  function Through2 (override) {
+    if (!(this instanceof Through2)) {
+      return new Through2(override)
+    }
+
+    this.options = Object.assign({}, options, override)
+
+    Transform.call(this, this.options)
+
+    this._transform = transform
+    if (flush) {
+      this._flush = flush
+    }
+  }
+
+  inherits(Through2, Transform)
+
+  return Through2
+})
+
+const obj = through2(function (options, transform, flush) {
+  const t2 = new Transform(Object.assign({ objectMode: true, highWaterMark: 16 }, options))
+
+  t2._transform = transform
+
+  if (flush) {
+    t2._flush = flush
+  }
+
+  return t2
+})
+
+module.exports = make
+module.exports.ctor = ctor
+module.exports.obj = obj
+
+
+/***/ }),
 /* 337 */
 /***/ (function(__unusedmodule, exports) {
 
@@ -31263,7 +31452,7 @@ function withDefaults(oldDefaults, newDefaults) {
   });
 }
 
-const VERSION = "6.0.10";
+const VERSION = "6.0.11";
 
 const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
 // So we use RequestParameters and add method as additional required property.
@@ -34830,12 +35019,96 @@ function setHeaders (res, headers) {
 
 
 /***/ }),
-/* 431 */,
+/* 431 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(469);
+/**
+ * Commands
+ *
+ * Command Format:
+ *   ::name key=value,key=value::message
+ *
+ * Examples:
+ *   ::warning::This is the message
+ *   ::set-env name=MY_VAR::some value
+ */
+function issueCommand(command, properties, message) {
+    const cmd = new Command(command, properties, message);
+    process.stdout.write(cmd.toString() + os.EOL);
+}
+exports.issueCommand = issueCommand;
+function issue(name, message = '') {
+    issueCommand(name, {}, message);
+}
+exports.issue = issue;
+const CMD_STRING = '::';
+class Command {
+    constructor(command, properties, message) {
+        if (!command) {
+            command = 'missing.command';
+        }
+        this.command = command;
+        this.properties = properties;
+        this.message = message;
+    }
+    toString() {
+        let cmdStr = CMD_STRING + this.command;
+        if (this.properties && Object.keys(this.properties).length > 0) {
+            cmdStr += ' ';
+            let first = true;
+            for (const key in this.properties) {
+                if (this.properties.hasOwnProperty(key)) {
+                    const val = this.properties[key];
+                    if (val) {
+                        if (first) {
+                            first = false;
+                        }
+                        else {
+                            cmdStr += ',';
+                        }
+                        cmdStr += `${key}=${escapeProperty(val)}`;
+                    }
+                }
+            }
+        }
+        cmdStr += `${CMD_STRING}${escapeData(this.message)}`;
+        return cmdStr;
+    }
+}
+function escapeData(s) {
+    return utils_1.toCommandValue(s)
+        .replace(/%/g, '%25')
+        .replace(/\r/g, '%0D')
+        .replace(/\n/g, '%0A');
+}
+function escapeProperty(s) {
+    return utils_1.toCommandValue(s)
+        .replace(/%/g, '%25')
+        .replace(/\r/g, '%0D')
+        .replace(/\n/g, '%0A')
+        .replace(/:/g, '%3A')
+        .replace(/,/g, '%2C');
+}
+//# sourceMappingURL=command.js.map
+
+/***/ }),
 /* 432 */,
 /* 433 */
 /***/ (function(module) {
 
-module.exports = {"acl":{"arity":-2,"flags":["admin","noscript","loading","stale","skip_slowlog"],"keyStart":0,"keyStop":0,"step":0},"append":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"asking":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"auth":{"arity":-2,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog","fast","no_auth"],"keyStart":0,"keyStop":0,"step":0},"bgrewriteaof":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"bgsave":{"arity":-1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"bitcount":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"bitfield":{"arity":-2,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"bitfield_ro":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"bitop":{"arity":-4,"flags":["write","denyoom"],"keyStart":2,"keyStop":-1,"step":1},"bitpos":{"arity":-3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"blpop":{"arity":-3,"flags":["write","noscript"],"keyStart":1,"keyStop":-2,"step":1},"brpop":{"arity":-3,"flags":["write","noscript"],"keyStart":1,"keyStop":-2,"step":1},"brpoplpush":{"arity":4,"flags":["write","denyoom","noscript"],"keyStart":1,"keyStop":2,"step":1},"bzpopmax":{"arity":-3,"flags":["write","noscript","fast"],"keyStart":1,"keyStop":-2,"step":1},"bzpopmin":{"arity":-3,"flags":["write","noscript","fast"],"keyStart":1,"keyStop":-2,"step":1},"client":{"arity":-2,"flags":["admin","noscript","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"cluster":{"arity":-2,"flags":["admin","random","stale"],"keyStart":0,"keyStop":0,"step":0},"command":{"arity":-1,"flags":["random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"config":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"dbsize":{"arity":1,"flags":["readonly","fast"],"keyStart":0,"keyStop":0,"step":0},"debug":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"decr":{"arity":2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"decrby":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"del":{"arity":-2,"flags":["write"],"keyStart":1,"keyStop":-1,"step":1},"discard":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"dump":{"arity":2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"echo":{"arity":2,"flags":["readonly","fast"],"keyStart":0,"keyStop":0,"step":0},"eval":{"arity":-3,"flags":["noscript","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"evalsha":{"arity":-3,"flags":["noscript","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"exec":{"arity":1,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog"],"keyStart":0,"keyStop":0,"step":0},"exists":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"expire":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"expireat":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"flushall":{"arity":-1,"flags":["write"],"keyStart":0,"keyStop":0,"step":0},"flushdb":{"arity":-1,"flags":["write"],"keyStart":0,"keyStop":0,"step":0},"geoadd":{"arity":-5,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"geodist":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geohash":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geopos":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"georadius":{"arity":-6,"flags":["write","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"georadius_ro":{"arity":-6,"flags":["readonly","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"georadiusbymember":{"arity":-5,"flags":["write","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"georadiusbymember_ro":{"arity":-5,"flags":["readonly","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"get":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"getbit":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"getrange":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"getset":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hdel":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"hello":{"arity":-2,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog","fast","no_auth"],"keyStart":0,"keyStop":0,"step":0},"hexists":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hget":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hgetall":{"arity":2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"hincrby":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hincrbyfloat":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hkeys":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"hlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hmget":{"arity":-3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hmset":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"host:":{"arity":-1,"flags":["readonly","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"hscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"hset":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hsetnx":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hstrlen":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hvals":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"incr":{"arity":2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"incrby":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"incrbyfloat":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"info":{"arity":-1,"flags":["random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"keys":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":0,"keyStop":0,"step":0},"lastsave":{"arity":1,"flags":["readonly","random","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"latency":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"lindex":{"arity":3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"linsert":{"arity":5,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"llen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"lolwut":{"arity":-1,"flags":["readonly","fast"],"keyStart":0,"keyStop":0,"step":0},"lpop":{"arity":2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"lpos":{"arity":-3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"lpush":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"lpushx":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"lrange":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"lrem":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"lset":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"ltrim":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"memory":{"arity":-2,"flags":["readonly","random","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"mget":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"migrate":{"arity":-6,"flags":["write","random","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"module":{"arity":-2,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"monitor":{"arity":1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"move":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"mset":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":2},"msetnx":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":2},"multi":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"object":{"arity":-2,"flags":["readonly","random"],"keyStart":2,"keyStop":2,"step":1},"persist":{"arity":2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pexpire":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pexpireat":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pfadd":{"arity":-2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"pfcount":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":-1,"step":1},"pfdebug":{"arity":-3,"flags":["write","admin"],"keyStart":0,"keyStop":0,"step":0},"pfmerge":{"arity":-2,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"pfselftest":{"arity":1,"flags":["admin"],"keyStart":0,"keyStop":0,"step":0},"ping":{"arity":-1,"flags":["stale","fast"],"keyStart":0,"keyStop":0,"step":0},"post":{"arity":-1,"flags":["readonly","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"psetex":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"psubscribe":{"arity":-2,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"psync":{"arity":3,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"pttl":{"arity":2,"flags":["readonly","random","fast"],"keyStart":1,"keyStop":1,"step":1},"publish":{"arity":3,"flags":["pubsub","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"pubsub":{"arity":-2,"flags":["pubsub","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"punsubscribe":{"arity":-1,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"quit":{"arity":1,"flags":["loading","stale","readonly"],"keyStart":0,"keyStop":0,"step":0},"randomkey":{"arity":1,"flags":["readonly","random"],"keyStart":0,"keyStop":0,"step":0},"readonly":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"readwrite":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"rename":{"arity":3,"flags":["write"],"keyStart":1,"keyStop":2,"step":1},"renamenx":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":2,"step":1},"replconf":{"arity":-1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"replicaof":{"arity":3,"flags":["admin","noscript","stale"],"keyStart":0,"keyStop":0,"step":0},"restore":{"arity":-4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"restore-asking":{"arity":-4,"flags":["write","denyoom","asking"],"keyStart":1,"keyStop":1,"step":1},"role":{"arity":1,"flags":["readonly","noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"rpop":{"arity":2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"rpoplpush":{"arity":3,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"rpush":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"rpushx":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"sadd":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"save":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"scan":{"arity":-2,"flags":["readonly","random"],"keyStart":0,"keyStop":0,"step":0},"scard":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"script":{"arity":-2,"flags":["noscript"],"keyStart":0,"keyStop":0,"step":0},"sdiff":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sdiffstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"select":{"arity":2,"flags":["loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"set":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setbit":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setex":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setnx":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"setrange":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"shutdown":{"arity":-1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"sinter":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sinterstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"sismember":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"slaveof":{"arity":3,"flags":["admin","noscript","stale"],"keyStart":0,"keyStop":0,"step":0},"slowlog":{"arity":-2,"flags":["admin","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"smembers":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"smove":{"arity":4,"flags":["write","fast"],"keyStart":1,"keyStop":2,"step":1},"sort":{"arity":-2,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"spop":{"arity":-2,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"srandmember":{"arity":-2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"srem":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"sscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"stralgo":{"arity":-2,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"strlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"subscribe":{"arity":-2,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"substr":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"sunion":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sunionstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"swapdb":{"arity":3,"flags":["write","fast"],"keyStart":0,"keyStop":0,"step":0},"sync":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"time":{"arity":1,"flags":["readonly","random","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"touch":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"ttl":{"arity":2,"flags":["readonly","random","fast"],"keyStart":1,"keyStop":1,"step":1},"type":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"unlink":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":-1,"step":1},"unsubscribe":{"arity":-1,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"unwatch":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"wait":{"arity":3,"flags":["noscript"],"keyStart":0,"keyStop":0,"step":0},"watch":{"arity":-2,"flags":["noscript","loading","stale","fast"],"keyStart":1,"keyStop":-1,"step":1},"xack":{"arity":-4,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xadd":{"arity":-5,"flags":["write","denyoom","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xclaim":{"arity":-6,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xdel":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"xgroup":{"arity":-2,"flags":["write","denyoom"],"keyStart":2,"keyStop":2,"step":1},"xinfo":{"arity":-2,"flags":["readonly","random"],"keyStart":2,"keyStop":2,"step":1},"xlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"xpending":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"xrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"xread":{"arity":-4,"flags":["readonly","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"xreadgroup":{"arity":-7,"flags":["write","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"xrevrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"xsetid":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"xtrim":{"arity":-2,"flags":["write","random"],"keyStart":1,"keyStop":1,"step":1},"zadd":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"zcard":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zcount":{"arity":4,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zincrby":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"zinterstore":{"arity":-4,"flags":["write","denyoom","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"zlexcount":{"arity":4,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zpopmax":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zpopmin":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrangebylex":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrangebyscore":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrank":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zrem":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zremrangebylex":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zremrangebyrank":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zremrangebyscore":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zrevrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrangebylex":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrangebyscore":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrank":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"zscore":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zunionstore":{"arity":-4,"flags":["write","denyoom","movablekeys"],"keyStart":0,"keyStop":0,"step":0}};
+module.exports = {"acl":{"arity":-2,"flags":["admin","noscript","loading","stale","skip_slowlog"],"keyStart":0,"keyStop":0,"step":0},"append":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"asking":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"auth":{"arity":-2,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog","fast","no_auth"],"keyStart":0,"keyStop":0,"step":0},"bgrewriteaof":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"bgsave":{"arity":-1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"bitcount":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"bitfield":{"arity":-2,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"bitfield_ro":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"bitop":{"arity":-4,"flags":["write","denyoom"],"keyStart":2,"keyStop":-1,"step":1},"bitpos":{"arity":-3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"blmove":{"arity":6,"flags":["write","denyoom","noscript"],"keyStart":1,"keyStop":2,"step":1},"blpop":{"arity":-3,"flags":["write","noscript"],"keyStart":1,"keyStop":-2,"step":1},"brpop":{"arity":-3,"flags":["write","noscript"],"keyStart":1,"keyStop":-2,"step":1},"brpoplpush":{"arity":4,"flags":["write","denyoom","noscript"],"keyStart":1,"keyStop":2,"step":1},"bzpopmax":{"arity":-3,"flags":["write","noscript","fast"],"keyStart":1,"keyStop":-2,"step":1},"bzpopmin":{"arity":-3,"flags":["write","noscript","fast"],"keyStart":1,"keyStop":-2,"step":1},"client":{"arity":-2,"flags":["admin","noscript","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"cluster":{"arity":-2,"flags":["admin","random","stale"],"keyStart":0,"keyStop":0,"step":0},"command":{"arity":-1,"flags":["random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"config":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"copy":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"dbsize":{"arity":1,"flags":["readonly","fast"],"keyStart":0,"keyStop":0,"step":0},"debug":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"decr":{"arity":2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"decrby":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"del":{"arity":-2,"flags":["write"],"keyStart":1,"keyStop":-1,"step":1},"discard":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"dump":{"arity":2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"echo":{"arity":2,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"eval":{"arity":-3,"flags":["noscript","may_replicate","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"evalsha":{"arity":-3,"flags":["noscript","may_replicate","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"exec":{"arity":1,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog"],"keyStart":0,"keyStop":0,"step":0},"exists":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"expire":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"expireat":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"failover":{"arity":-1,"flags":["admin","noscript","stale"],"keyStart":0,"keyStop":0,"step":0},"flushall":{"arity":-1,"flags":["write"],"keyStart":0,"keyStop":0,"step":0},"flushdb":{"arity":-1,"flags":["write"],"keyStart":0,"keyStop":0,"step":0},"geoadd":{"arity":-5,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"geodist":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geohash":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geopos":{"arity":-2,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"georadius":{"arity":-6,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"georadius_ro":{"arity":-6,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"georadiusbymember":{"arity":-5,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"georadiusbymember_ro":{"arity":-5,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geosearch":{"arity":-7,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"geosearchstore":{"arity":-8,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"get":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"getbit":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"getdel":{"arity":2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"getex":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"getrange":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"getset":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hdel":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"hello":{"arity":-1,"flags":["noscript","loading","stale","skip_monitor","skip_slowlog","fast","no_auth"],"keyStart":0,"keyStop":0,"step":0},"hexists":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hget":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hgetall":{"arity":2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"hincrby":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hincrbyfloat":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hkeys":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"hlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hmget":{"arity":-3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hmset":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"host:":{"arity":-1,"flags":["readonly","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"hrandfield":{"arity":-2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"hscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"hset":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hsetnx":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"hstrlen":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"hvals":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"incr":{"arity":2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"incrby":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"incrbyfloat":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"info":{"arity":-1,"flags":["random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"keys":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":0,"keyStop":0,"step":0},"lastsave":{"arity":1,"flags":["random","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"latency":{"arity":-2,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"lindex":{"arity":3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"linsert":{"arity":5,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"llen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"lmove":{"arity":5,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"lolwut":{"arity":-1,"flags":["readonly","fast"],"keyStart":0,"keyStop":0,"step":0},"lpop":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"lpos":{"arity":-3,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"lpush":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"lpushx":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"lrange":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"lrem":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"lset":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"ltrim":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"memory":{"arity":-2,"flags":["readonly","random","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"mget":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"migrate":{"arity":-6,"flags":["write","random","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"module":{"arity":-2,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"monitor":{"arity":1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"move":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"mset":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":2},"msetnx":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":2},"multi":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"object":{"arity":-2,"flags":["readonly","random"],"keyStart":2,"keyStop":2,"step":1},"persist":{"arity":2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pexpire":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pexpireat":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"pfadd":{"arity":-2,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"pfcount":{"arity":-2,"flags":["readonly","may_replicate"],"keyStart":1,"keyStop":-1,"step":1},"pfdebug":{"arity":-3,"flags":["write","denyoom","admin"],"keyStart":2,"keyStop":2,"step":1},"pfmerge":{"arity":-2,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"pfselftest":{"arity":1,"flags":["admin"],"keyStart":0,"keyStop":0,"step":0},"ping":{"arity":-1,"flags":["stale","fast"],"keyStart":0,"keyStop":0,"step":0},"post":{"arity":-1,"flags":["readonly","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"psetex":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"psubscribe":{"arity":-2,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"psync":{"arity":-3,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"pttl":{"arity":2,"flags":["readonly","random","fast"],"keyStart":1,"keyStop":1,"step":1},"publish":{"arity":3,"flags":["pubsub","loading","stale","fast","may_replicate"],"keyStart":0,"keyStop":0,"step":0},"pubsub":{"arity":-2,"flags":["pubsub","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"punsubscribe":{"arity":-1,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"quit":{"arity":1,"flags":["loading","stale","readonly"],"keyStart":0,"keyStop":0,"step":0},"randomkey":{"arity":1,"flags":["readonly","random"],"keyStart":0,"keyStop":0,"step":0},"readonly":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"readwrite":{"arity":1,"flags":["fast"],"keyStart":0,"keyStop":0,"step":0},"rename":{"arity":3,"flags":["write"],"keyStart":1,"keyStop":2,"step":1},"renamenx":{"arity":3,"flags":["write","fast"],"keyStart":1,"keyStop":2,"step":1},"replconf":{"arity":-1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"replicaof":{"arity":3,"flags":["admin","noscript","stale"],"keyStart":0,"keyStop":0,"step":0},"reset":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"restore":{"arity":-4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"restore-asking":{"arity":-4,"flags":["write","denyoom","asking"],"keyStart":1,"keyStop":1,"step":1},"role":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"rpop":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"rpoplpush":{"arity":3,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"rpush":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"rpushx":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"sadd":{"arity":-3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"save":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"scan":{"arity":-2,"flags":["readonly","random"],"keyStart":0,"keyStop":0,"step":0},"scard":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"script":{"arity":-2,"flags":["noscript","may_replicate"],"keyStart":0,"keyStop":0,"step":0},"sdiff":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sdiffstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"select":{"arity":2,"flags":["loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"set":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setbit":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setex":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"setnx":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"setrange":{"arity":4,"flags":["write","denyoom"],"keyStart":1,"keyStop":1,"step":1},"shutdown":{"arity":-1,"flags":["admin","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"sinter":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sinterstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"sismember":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"slaveof":{"arity":3,"flags":["admin","noscript","stale"],"keyStart":0,"keyStop":0,"step":0},"slowlog":{"arity":-2,"flags":["admin","random","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"smembers":{"arity":2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":1,"step":1},"smismember":{"arity":-3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"smove":{"arity":4,"flags":["write","fast"],"keyStart":1,"keyStop":2,"step":1},"sort":{"arity":-2,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"spop":{"arity":-2,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"srandmember":{"arity":-2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"srem":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"sscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"stralgo":{"arity":-2,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"strlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"subscribe":{"arity":-2,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"substr":{"arity":4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"sunion":{"arity":-2,"flags":["readonly","sort_for_script"],"keyStart":1,"keyStop":-1,"step":1},"sunionstore":{"arity":-3,"flags":["write","denyoom"],"keyStart":1,"keyStop":-1,"step":1},"swapdb":{"arity":3,"flags":["write","fast"],"keyStart":0,"keyStop":0,"step":0},"sync":{"arity":1,"flags":["admin","noscript"],"keyStart":0,"keyStop":0,"step":0},"time":{"arity":1,"flags":["random","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"touch":{"arity":-2,"flags":["readonly","fast"],"keyStart":1,"keyStop":-1,"step":1},"ttl":{"arity":2,"flags":["readonly","random","fast"],"keyStart":1,"keyStop":1,"step":1},"type":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"unlink":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":-1,"step":1},"unsubscribe":{"arity":-1,"flags":["pubsub","noscript","loading","stale"],"keyStart":0,"keyStop":0,"step":0},"unwatch":{"arity":1,"flags":["noscript","loading","stale","fast"],"keyStart":0,"keyStop":0,"step":0},"wait":{"arity":3,"flags":["noscript"],"keyStart":0,"keyStop":0,"step":0},"watch":{"arity":-2,"flags":["noscript","loading","stale","fast"],"keyStart":1,"keyStop":-1,"step":1},"xack":{"arity":-4,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xadd":{"arity":-5,"flags":["write","denyoom","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xautoclaim":{"arity":-6,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xclaim":{"arity":-6,"flags":["write","random","fast"],"keyStart":1,"keyStop":1,"step":1},"xdel":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"xgroup":{"arity":-2,"flags":["write","denyoom"],"keyStart":2,"keyStop":2,"step":1},"xinfo":{"arity":-2,"flags":["readonly","random"],"keyStart":2,"keyStop":2,"step":1},"xlen":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"xpending":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"xrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"xread":{"arity":-4,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"xreadgroup":{"arity":-7,"flags":["write","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"xrevrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"xsetid":{"arity":3,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"xtrim":{"arity":-2,"flags":["write","random"],"keyStart":1,"keyStop":1,"step":1},"zadd":{"arity":-4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"zcard":{"arity":2,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zcount":{"arity":4,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zdiff":{"arity":-3,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"zdiffstore":{"arity":-4,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"zincrby":{"arity":4,"flags":["write","denyoom","fast"],"keyStart":1,"keyStop":1,"step":1},"zinter":{"arity":-3,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"zinterstore":{"arity":-4,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1},"zlexcount":{"arity":4,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zmscore":{"arity":-3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zpopmax":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zpopmin":{"arity":-2,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zrandmember":{"arity":-2,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"zrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrangebylex":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrangebyscore":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrangestore":{"arity":-5,"flags":["write","denyoom"],"keyStart":1,"keyStop":2,"step":1},"zrank":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zrem":{"arity":-3,"flags":["write","fast"],"keyStart":1,"keyStop":1,"step":1},"zremrangebylex":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zremrangebyrank":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zremrangebyscore":{"arity":4,"flags":["write"],"keyStart":1,"keyStop":1,"step":1},"zrevrange":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrangebylex":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrangebyscore":{"arity":-4,"flags":["readonly"],"keyStart":1,"keyStop":1,"step":1},"zrevrank":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zscan":{"arity":-3,"flags":["readonly","random"],"keyStart":1,"keyStop":1,"step":1},"zscore":{"arity":3,"flags":["readonly","fast"],"keyStart":1,"keyStop":1,"step":1},"zunion":{"arity":-3,"flags":["readonly","movablekeys"],"keyStart":0,"keyStop":0,"step":0},"zunionstore":{"arity":-4,"flags":["write","denyoom","movablekeys"],"keyStart":1,"keyStop":1,"step":1}};
 
 /***/ }),
 /* 434 */,
@@ -37306,7 +37579,7 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 
-const VERSION = "3.2.4";
+const VERSION = "3.2.5";
 
 class Octokit {
   constructor(options = {}) {
@@ -37487,7 +37760,7 @@ function openFile (file, sonic) {
     }
 
     // start
-    var len = sonic._buf.length
+    const len = sonic._buf.length
     if (len > 0 && len > sonic.minLength && !sonic.destroyed) {
       actualWrite(sonic)
     }
@@ -37507,7 +37780,7 @@ function SonicBoom (opts) {
     return new SonicBoom(opts)
   }
 
-  var { fd, dest, minLength, sync } = opts || {}
+  let { fd, dest, minLength, sync } = opts || {}
 
   fd = fd || dest
 
@@ -37583,7 +37856,7 @@ function SonicBoom (opts) {
       return
     }
 
-    var len = this._buf.length
+    const len = this._buf.length
     if (this._reopening) {
       this._writing = false
       this._reopening = false
@@ -37632,7 +37905,7 @@ SonicBoom.prototype.write = function (data) {
   }
 
   this._buf += data
-  var len = this._buf.length
+  const len = this._buf.length
   if (!this._writing && len > this.minLength) {
     actualWrite(this)
   }
@@ -37725,9 +37998,17 @@ SonicBoom.prototype.flushSync = function () {
     throw new Error('sonic boom is not ready yet')
   }
 
-  if (this._buf.length > 0) {
-    fs.writeSync(this.fd, this._buf, 'utf8')
-    this._buf = ''
+  while (this._buf.length > 0) {
+    try {
+      fs.writeSync(this.fd, this._buf, 'utf8')
+      this._buf = ''
+    } catch (err) {
+      if (err.code !== 'EAGAIN') {
+        throw err
+      }
+
+      sleep(BUSY_WRITE_TIMEOUT)
+    }
   }
 }
 
@@ -37740,8 +38021,8 @@ SonicBoom.prototype.destroy = function () {
 
 function actualWrite (sonic) {
   sonic._writing = true
-  var buf = sonic._buf
-  var release = sonic.release
+  let buf = sonic._buf
+  const release = sonic.release
   if (buf.length > MAX_WRITE) {
     buf = buf.slice(0, MAX_WRITE)
     sonic._buf = sonic._buf.slice(MAX_WRITE)
@@ -37752,7 +38033,7 @@ function actualWrite (sonic) {
   sonic._writingBuf = buf
   if (sonic.sync) {
     try {
-      var written = fs.writeSync(sonic.fd, buf, 'utf8')
+      const written = fs.writeSync(sonic.fd, buf, 'utf8')
       release(null, written)
     } catch (err) {
       release(err)
@@ -40114,8 +40395,275 @@ function fastRedact (opts = {}) {
 
 
 /***/ }),
-/* 469 */,
-/* 470 */,
+/* 469 */
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sanitizes an input into a string so it can be passed into issueCommand safely
+ * @param input input to sanitize into a string
+ */
+function toCommandValue(input) {
+    if (input === null || input === undefined) {
+        return '';
+    }
+    else if (typeof input === 'string' || input instanceof String) {
+        return input;
+    }
+    return JSON.stringify(input);
+}
+exports.toCommandValue = toCommandValue;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+/* 470 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const command_1 = __webpack_require__(431);
+const file_command_1 = __webpack_require__(102);
+const utils_1 = __webpack_require__(469);
+const os = __importStar(__webpack_require__(87));
+const path = __importStar(__webpack_require__(622));
+/**
+ * The code to exit an action
+ */
+var ExitCode;
+(function (ExitCode) {
+    /**
+     * A code indicating that the action was successful
+     */
+    ExitCode[ExitCode["Success"] = 0] = "Success";
+    /**
+     * A code indicating that the action was a failure
+     */
+    ExitCode[ExitCode["Failure"] = 1] = "Failure";
+})(ExitCode = exports.ExitCode || (exports.ExitCode = {}));
+//-----------------------------------------------------------------------
+// Variables
+//-----------------------------------------------------------------------
+/**
+ * Sets env variable for this action and future actions in the job
+ * @param name the name of the variable to set
+ * @param val the value of the variable. Non-string values will be converted to a string via JSON.stringify
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function exportVariable(name, val) {
+    const convertedVal = utils_1.toCommandValue(val);
+    process.env[name] = convertedVal;
+    const filePath = process.env['GITHUB_ENV'] || '';
+    if (filePath) {
+        const delimiter = '_GitHubActionsFileCommandDelimeter_';
+        const commandValue = `${name}<<${delimiter}${os.EOL}${convertedVal}${os.EOL}${delimiter}`;
+        file_command_1.issueCommand('ENV', commandValue);
+    }
+    else {
+        command_1.issueCommand('set-env', { name }, convertedVal);
+    }
+}
+exports.exportVariable = exportVariable;
+/**
+ * Registers a secret which will get masked from logs
+ * @param secret value of the secret
+ */
+function setSecret(secret) {
+    command_1.issueCommand('add-mask', {}, secret);
+}
+exports.setSecret = setSecret;
+/**
+ * Prepends inputPath to the PATH (for this action and future actions)
+ * @param inputPath
+ */
+function addPath(inputPath) {
+    const filePath = process.env['GITHUB_PATH'] || '';
+    if (filePath) {
+        file_command_1.issueCommand('PATH', inputPath);
+    }
+    else {
+        command_1.issueCommand('add-path', {}, inputPath);
+    }
+    process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
+}
+exports.addPath = addPath;
+/**
+ * Gets the value of an input.  The value is also trimmed.
+ *
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   string
+ */
+function getInput(name, options) {
+    const val = process.env[`INPUT_${name.replace(/ /g, '_').toUpperCase()}`] || '';
+    if (options && options.required && !val) {
+        throw new Error(`Input required and not supplied: ${name}`);
+    }
+    return val.trim();
+}
+exports.getInput = getInput;
+/**
+ * Sets the value of an output.
+ *
+ * @param     name     name of the output to set
+ * @param     value    value to store. Non-string values will be converted to a string via JSON.stringify
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setOutput(name, value) {
+    command_1.issueCommand('set-output', { name }, value);
+}
+exports.setOutput = setOutput;
+/**
+ * Enables or disables the echoing of commands into stdout for the rest of the step.
+ * Echoing is disabled by default if ACTIONS_STEP_DEBUG is not set.
+ *
+ */
+function setCommandEcho(enabled) {
+    command_1.issue('echo', enabled ? 'on' : 'off');
+}
+exports.setCommandEcho = setCommandEcho;
+//-----------------------------------------------------------------------
+// Results
+//-----------------------------------------------------------------------
+/**
+ * Sets the action status to failed.
+ * When the action exits it will be with an exit code of 1
+ * @param message add error issue message
+ */
+function setFailed(message) {
+    process.exitCode = ExitCode.Failure;
+    error(message);
+}
+exports.setFailed = setFailed;
+//-----------------------------------------------------------------------
+// Logging Commands
+//-----------------------------------------------------------------------
+/**
+ * Gets whether Actions Step Debug is on or not
+ */
+function isDebug() {
+    return process.env['RUNNER_DEBUG'] === '1';
+}
+exports.isDebug = isDebug;
+/**
+ * Writes debug message to user log
+ * @param message debug message
+ */
+function debug(message) {
+    command_1.issueCommand('debug', {}, message);
+}
+exports.debug = debug;
+/**
+ * Adds an error issue
+ * @param message error issue message. Errors will be converted to string via toString()
+ */
+function error(message) {
+    command_1.issue('error', message instanceof Error ? message.toString() : message);
+}
+exports.error = error;
+/**
+ * Adds an warning issue
+ * @param message warning issue message. Errors will be converted to string via toString()
+ */
+function warning(message) {
+    command_1.issue('warning', message instanceof Error ? message.toString() : message);
+}
+exports.warning = warning;
+/**
+ * Writes info to log with console.log.
+ * @param message info message
+ */
+function info(message) {
+    process.stdout.write(message + os.EOL);
+}
+exports.info = info;
+/**
+ * Begin an output group.
+ *
+ * Output until the next `groupEnd` will be foldable in this group
+ *
+ * @param name The name of the output group
+ */
+function startGroup(name) {
+    command_1.issue('group', name);
+}
+exports.startGroup = startGroup;
+/**
+ * End an output group.
+ */
+function endGroup() {
+    command_1.issue('endgroup');
+}
+exports.endGroup = endGroup;
+/**
+ * Wrap an asynchronous function call in a group.
+ *
+ * Returns the same type as the function itself.
+ *
+ * @param name The name of the group
+ * @param fn The function to wrap in the group
+ */
+function group(name, fn) {
+    return __awaiter(this, void 0, void 0, function* () {
+        startGroup(name);
+        let result;
+        try {
+            result = yield fn();
+        }
+        finally {
+            endGroup();
+        }
+        return result;
+    });
+}
+exports.group = group;
+//-----------------------------------------------------------------------
+// Wrapper action state
+//-----------------------------------------------------------------------
+/**
+ * Saves state for current action, the state can only be retrieved by this action's post job execution.
+ *
+ * @param     name     name of the state to store
+ * @param     value    value to store. Non-string values will be converted to a string via JSON.stringify
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function saveState(name, value) {
+    command_1.issueCommand('save-state', { name }, value);
+}
+exports.saveState = saveState;
+/**
+ * Gets the value of an state set by this action's main execution.
+ *
+ * @param     name     name of the state to get
+ * @returns   string
+ */
+function getState(name) {
+    return process.env[`STATE_${name}`] || '';
+}
+exports.getState = getState;
+//# sourceMappingURL=core.js.map
+
+/***/ }),
 /* 471 */,
 /* 472 */,
 /* 473 */,
@@ -42306,51 +42854,51 @@ function getRedisClient({ log, redisConfig }) {
 /* 510 */
 /***/ (function(module) {
 
-module.exports = addHook
+module.exports = addHook;
 
-function addHook (state, kind, name, hook) {
-  var orig = hook
+function addHook(state, kind, name, hook) {
+  var orig = hook;
   if (!state.registry[name]) {
-    state.registry[name] = []
+    state.registry[name] = [];
   }
 
-  if (kind === 'before') {
+  if (kind === "before") {
     hook = function (method, options) {
       return Promise.resolve()
         .then(orig.bind(null, options))
-        .then(method.bind(null, options))
-    }
+        .then(method.bind(null, options));
+    };
   }
 
-  if (kind === 'after') {
+  if (kind === "after") {
     hook = function (method, options) {
-      var result
+      var result;
       return Promise.resolve()
         .then(method.bind(null, options))
         .then(function (result_) {
-          result = result_
-          return orig(result, options)
+          result = result_;
+          return orig(result, options);
         })
         .then(function () {
-          return result
-        })
-    }
+          return result;
+        });
+    };
   }
 
-  if (kind === 'error') {
+  if (kind === "error") {
     hook = function (method, options) {
       return Promise.resolve()
         .then(method.bind(null, options))
         .catch(function (error) {
-          return orig(error, options)
-        })
-    }
+          return orig(error, options);
+        });
+    };
   }
 
   state.registry[name].push({
     hook: hook,
-    orig: orig
-  })
+    orig: orig,
+  });
 }
 
 
@@ -43189,7 +43737,7 @@ var integration_1 = __webpack_require__(759);
  * without a valid Dsn, the SDK will not send any events to Sentry.
  *
  * Before sending an event via the backend, it is passed through
- * {@link BaseClient.prepareEvent} to add SDK information and scope data
+ * {@link BaseClient._prepareEvent} to add SDK information and scope data
  * (breadcrumbs and context). To add more custom information, override this
  * method and extend the resulting prepared event.
  *
@@ -43275,6 +43823,8 @@ var BaseClient = /** @class */ (function () {
         }
         else {
             this._sendSession(session);
+            // After sending, we set init false to inidcate it's not the first occurence
+            session.update({ init: false });
         }
     };
     /**
@@ -43370,6 +43920,7 @@ var BaseClient = /** @class */ (function () {
         }
         session.update(tslib_1.__assign(tslib_1.__assign({}, (crashed && { status: types_1.SessionStatus.Crashed })), { user: user,
             userAgent: userAgent, errors: session.errors + Number(errored || crashed) }));
+        this.captureSession(session);
     };
     /** Deliver captured session to Sentry */
     BaseClient.prototype._sendSession = function (session) {
@@ -43515,7 +44066,7 @@ var BaseClient = /** @class */ (function () {
     };
     /**
      * This function adds all used integrations to the SDK info in the event.
-     * @param sdkInfo The sdkInfo of the event that will be filled with all integrations.
+     * @param event The event that will be filled with all integrations.
      */
     BaseClient.prototype._applyIntegrationsMetadata = function (event) {
         var sdkInfo = event.sdk;
@@ -48470,6 +49021,25 @@ function patch (fs) {
     }
   }
 
+  var fs$copyFile = fs.copyFile
+  if (fs$copyFile)
+    fs.copyFile = copyFile
+  function copyFile (src, dest, flags, cb) {
+    if (typeof flags === 'function') {
+      cb = flags
+      flags = 0
+    }
+    return fs$copyFile(src, dest, flags, function (err) {
+      if (err && (err.code === 'EMFILE' || err.code === 'ENFILE'))
+        enqueue([fs$copyFile, [src, dest, flags, cb]])
+      else {
+        if (typeof cb === 'function')
+          cb.apply(this, arguments)
+        retry()
+      }
+    })
+  }
+
   var fs$readdir = fs.readdir
   fs.readdir = readdir
   function readdir (path, options, cb) {
@@ -49127,12 +49697,16 @@ module.exports = (chalk, temporary) => {
 
 module.exports = clone
 
+var getPrototypeOf = Object.getPrototypeOf || function (obj) {
+  return obj.__proto__
+}
+
 function clone (obj) {
   if (obj === null || typeof obj !== 'object')
     return obj
 
   if (obj instanceof Object)
-    var copy = { __proto__: obj.__proto__ }
+    var copy = { __proto__: getPrototypeOf(obj) }
   else
     var copy = Object.create(null)
 
@@ -52643,6 +53217,7 @@ var Session = /** @class */ (function () {
         this.started = Date.now();
         this.duration = 0;
         this.status = types_1.SessionStatus.Ok;
+        this.init = true;
         if (context) {
             this.update(context);
         }
@@ -52663,6 +53238,9 @@ var Session = /** @class */ (function () {
         if (context.sid) {
             // Good enough uuid validation. — Kamil
             this.sid = context.sid.length === 32 ? context.sid : utils_1.uuid4();
+        }
+        if (context.init !== undefined) {
+            this.init = context.init;
         }
         if (context.did) {
             this.did = "" + context.did;
@@ -52711,7 +53289,7 @@ var Session = /** @class */ (function () {
     Session.prototype.toJSON = function () {
         return utils_1.dropUndefinedKeys({
             sid: "" + this.sid,
-            init: true,
+            init: this.init,
             started: new Date(this.started).toISOString(),
             timestamp: new Date(this.timestamp).toISOString(),
             status: this.status,
@@ -54336,7 +54914,49 @@ module.exports = Job;
 
 /***/ }),
 /* 664 */,
-/* 665 */,
+/* 665 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+const { inspect } = __webpack_require__(669);
+
+const through = __webpack_require__(336);
+const core = __webpack_require__(470);
+const pino = __webpack_require__(722);
+
+const LEVEL_TO_ACTIONS_CORE_LOG_METHOD = {
+  trace: "debug",
+  debug: "debug",
+  info: "info",
+  warn: "warning",
+  error: "error",
+  fatal: "error",
+};
+
+const transport = through.obj(function (chunk, enc, cb) {
+  const { level, hostname, pid, msg, time, ...meta } = JSON.parse(chunk);
+  const levelLabel = pino.levels.labels[level] || level;
+  const logMethodName = LEVEL_TO_ACTIONS_CORE_LOG_METHOD[levelLabel];
+
+  const output = [
+    msg,
+    Object.keys(meta).length ? inspect(meta, { depth: Infinity }) : "",
+  ]
+    .join("\n")
+    .trim();
+
+  if (logMethodName in core) {
+    core[logMethodName](output);
+  } else {
+    core.error(`"${level}" is not a known log level - ${output}`);
+  }
+
+  cb();
+});
+
+module.exports = { transport };
+
+
+/***/ }),
 /* 666 */
 /***/ (function(__unusedmodule, exports) {
 
@@ -60783,7 +61403,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var request = __webpack_require__(317);
 var universalUserAgent = __webpack_require__(796);
 
-const VERSION = "4.5.8";
+const VERSION = "4.6.0";
 
 class GraphqlError extends Error {
   constructor(request, response) {
@@ -61292,8 +61912,8 @@ var Dsn = /** @class */ (function () {
      */
     Dsn.prototype.toString = function (withPassword) {
         if (withPassword === void 0) { withPassword = false; }
-        var _a = this, host = _a.host, path = _a.path, pass = _a.pass, port = _a.port, projectId = _a.projectId, protocol = _a.protocol, user = _a.user;
-        return (protocol + "://" + user + (withPassword && pass ? ":" + pass : '') +
+        var _a = this, host = _a.host, path = _a.path, pass = _a.pass, port = _a.port, projectId = _a.projectId, protocol = _a.protocol, publicKey = _a.publicKey;
+        return (protocol + "://" + publicKey + (withPassword && pass ? ":" + pass : '') +
             ("@" + host + (port ? ":" + port : '') + "/" + (path ? path + "/" : path) + projectId));
     };
     /** Parses a string into this Dsn. */
@@ -61302,7 +61922,7 @@ var Dsn = /** @class */ (function () {
         if (!match) {
             throw new error_1.SentryError(ERROR_MESSAGE);
         }
-        var _a = tslib_1.__read(match.slice(1), 6), protocol = _a[0], user = _a[1], _b = _a[2], pass = _b === void 0 ? '' : _b, host = _a[3], _c = _a[4], port = _c === void 0 ? '' : _c, lastPath = _a[5];
+        var _a = tslib_1.__read(match.slice(1), 6), protocol = _a[0], publicKey = _a[1], _b = _a[2], pass = _b === void 0 ? '' : _b, host = _a[3], _c = _a[4], port = _c === void 0 ? '' : _c, lastPath = _a[5];
         var path = '';
         var projectId = lastPath;
         var split = projectId.split('/');
@@ -61316,12 +61936,17 @@ var Dsn = /** @class */ (function () {
                 projectId = projectMatch[0];
             }
         }
-        this._fromComponents({ host: host, pass: pass, path: path, projectId: projectId, port: port, protocol: protocol, user: user });
+        this._fromComponents({ host: host, pass: pass, path: path, projectId: projectId, port: port, protocol: protocol, publicKey: publicKey });
     };
     /** Maps Dsn components into this instance. */
     Dsn.prototype._fromComponents = function (components) {
+        // TODO this is for backwards compatibility, and can be removed in a future version
+        if ('user' in components && !('publicKey' in components)) {
+            components.publicKey = components.user;
+        }
+        this.user = components.publicKey || '';
         this.protocol = components.protocol;
-        this.user = components.user;
+        this.publicKey = components.publicKey || '';
         this.pass = components.pass || '';
         this.host = components.host;
         this.port = components.port || '';
@@ -61331,7 +61956,7 @@ var Dsn = /** @class */ (function () {
     /** Validates this Dsn and throws on error. */
     Dsn.prototype._validate = function () {
         var _this = this;
-        ['protocol', 'user', 'host', 'projectId'].forEach(function (component) {
+        ['protocol', 'publicKey', 'host', 'projectId'].forEach(function (component) {
             if (!_this[component]) {
                 throw new error_1.SentryError(ERROR_MESSAGE + ": " + component + " missing");
             }
@@ -62358,22 +62983,24 @@ module.exports = {
 /* 763 */
 /***/ (function(module) {
 
-module.exports = removeHook
+module.exports = removeHook;
 
-function removeHook (state, name, method) {
+function removeHook(state, name, method) {
   if (!state.registry[name]) {
-    return
+    return;
   }
 
   var index = state.registry[name]
-    .map(function (registered) { return registered.orig })
-    .indexOf(method)
+    .map(function (registered) {
+      return registered.orig;
+    })
+    .indexOf(method);
 
   if (index === -1) {
-    return
+    return;
   }
 
-  state.registry[name].splice(index, 1)
+  state.registry[name].splice(index, 1);
 }
 
 
@@ -71042,9 +71669,9 @@ const debug = utils_1.Debug("redis");
  * it to reduce the latency.
  * @param {string} [options.connectionName=null] - Connection name.
  * @param {number} [options.db=0] - Database index to use.
- * @param {string} [options.username=null] - If set, client will send AUTH command with this user and password when connected.
  * @param {string} [options.password=null] - If set, client will send AUTH command
  * with the value of this option when connected.
+ * @param {string} [options.username=null] - Similar to `password`, Provide this for Redis ACL support.
  * @param {boolean} [options.dropBufferSupport=false] - Drop the buffer support for better performance.
  * This option is recommended to be enabled when
  * handling large array response and you don't need the buffer support.
@@ -77655,7 +78282,7 @@ exports.logger = logger;
 /***/ (function(__unusedmodule, exports) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SDK_VERSION = '6.0.4';
+exports.SDK_VERSION = '6.1.0';
 //# sourceMappingURL=version.js.map
 
 /***/ }),
@@ -79942,7 +80569,7 @@ var Transaction = /** @class */ (function (_super) {
         if (utils_1.isInstanceOf(hub, hub_1.Hub)) {
             _this._hub = hub;
         }
-        _this.name = transactionContext.name ? transactionContext.name : '';
+        _this.name = transactionContext.name || '';
         _this._trimEnd = transactionContext.trimEnd;
         // this is because transactions are also spans, and spans have a transaction pointer
         _this.transaction = _this;
@@ -80840,7 +81467,7 @@ function tryDecode(str, decode) {
 /* 929 */
 /***/ (function(module) {
 
-module.exports = {"name":"pino","version":"6.11.0","description":"super fast, all natural json logger","main":"pino.js","browser":"./browser.js","files":["pino.js","bin.js","browser.js","pretty.js","usage.txt","test","docs","example.js","lib"],"scripts":{"docs":"docsify serve","browser-test":"airtap --local 8080 test/browser*test.js","lint":"eslint .","test":"npm run lint && tap --100 test/*test.js test/*/*test.js","cov-ui":"tap --coverage-report=html test/*test.js test/*/*test.js","bench":"node benchmarks/utils/runbench all","bench-basic":"node benchmarks/utils/runbench basic","bench-object":"node benchmarks/utils/runbench object","bench-deep-object":"node benchmarks/utils/runbench deep-object","bench-multi-arg":"node benchmarks/utils/runbench multi-arg","bench-longs-tring":"node benchmarks/utils/runbench long-string","bench-child":"node benchmarks/utils/runbench child","bench-child-child":"node benchmarks/utils/runbench child-child","bench-child-creation":"node benchmarks/utils/runbench child-creation","bench-formatters":"node benchmarks/utils/runbench formatters","update-bench-doc":"node benchmarks/utils/generate-benchmark-doc > docs/benchmarks.md"},"bin":{"pino":"./bin.js"},"precommit":"test","repository":{"type":"git","url":"git+https://github.com/pinojs/pino.git"},"keywords":["fast","logger","stream","json"],"author":"Matteo Collina <hello@matteocollina.com>","contributors":["David Mark Clements <huperekchuno@googlemail.com>","James Sumners <james.sumners@gmail.com>","Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)"],"license":"MIT","bugs":{"url":"https://github.com/pinojs/pino/issues"},"homepage":"http://getpino.io","devDependencies":{"airtap":"3.0.0","benchmark":"^2.1.4","bole":"^4.0.0","bunyan":"^1.8.14","docsify-cli":"^4.4.1","eslint":"^7.17.0","eslint-config-standard":"^16.0.2","eslint-plugin-import":"^2.22.1","eslint-plugin-node":"^11.1.0","eslint-plugin-promise":"^4.2.1","execa":"^4.0.0","fastbench":"^1.0.1","flush-write-stream":"^2.0.0","import-fresh":"^3.2.1","log":"^6.0.0","loglevel":"^1.6.7","pino-pretty":"^4.1.0","pre-commit":"^1.2.2","proxyquire":"^2.1.3","pump":"^3.0.0","semver":"^7.0.0","split2":"^3.1.1","steed":"^1.1.3","strip-ansi":"^6.0.0","tap":"^14.10.8","tape":"^5.0.0","through2":"^4.0.0","winston":"^3.3.3"},"dependencies":{"fast-redact":"^3.0.0","fast-safe-stringify":"^2.0.7","flatstr":"^1.0.12","pino-std-serializers":"^3.1.0","quick-format-unescaped":"^4.0.1","sonic-boom":"^1.0.2"},"_resolved":"https://registry.npmjs.org/pino/-/pino-6.11.0.tgz","_integrity":"sha512-VPqEE2sU1z6wqkTtr7DdTktayTNE/JgeuWjfXh9g/TI6X7venzv4gaoU24/jSywf6bBeDfZRHWEeO/6f8bNppA==","_from":"pino@6.11.0"};
+module.exports = {"name":"pino","version":"6.11.1","description":"super fast, all natural json logger","main":"pino.js","browser":"./browser.js","files":["pino.js","bin.js","browser.js","pretty.js","usage.txt","test","docs","example.js","lib"],"scripts":{"docs":"docsify serve","browser-test":"airtap --local 8080 test/browser*test.js","lint":"eslint .","test":"npm run lint && tap --100 test/*test.js test/*/*test.js","cov-ui":"tap --coverage-report=html test/*test.js test/*/*test.js","bench":"node benchmarks/utils/runbench all","bench-basic":"node benchmarks/utils/runbench basic","bench-object":"node benchmarks/utils/runbench object","bench-deep-object":"node benchmarks/utils/runbench deep-object","bench-multi-arg":"node benchmarks/utils/runbench multi-arg","bench-longs-tring":"node benchmarks/utils/runbench long-string","bench-child":"node benchmarks/utils/runbench child","bench-child-child":"node benchmarks/utils/runbench child-child","bench-child-creation":"node benchmarks/utils/runbench child-creation","bench-formatters":"node benchmarks/utils/runbench formatters","update-bench-doc":"node benchmarks/utils/generate-benchmark-doc > docs/benchmarks.md"},"bin":{"pino":"./bin.js"},"precommit":"test","repository":{"type":"git","url":"git+https://github.com/pinojs/pino.git"},"keywords":["fast","logger","stream","json"],"author":"Matteo Collina <hello@matteocollina.com>","contributors":["David Mark Clements <huperekchuno@googlemail.com>","James Sumners <james.sumners@gmail.com>","Thomas Watson Steen <w@tson.dk> (https://twitter.com/wa7son)"],"license":"MIT","bugs":{"url":"https://github.com/pinojs/pino/issues"},"homepage":"http://getpino.io","devDependencies":{"airtap":"3.0.0","benchmark":"^2.1.4","bole":"^4.0.0","bunyan":"^1.8.14","docsify-cli":"^4.4.1","eslint":"^7.17.0","eslint-config-standard":"^16.0.2","eslint-plugin-import":"^2.22.1","eslint-plugin-node":"^11.1.0","eslint-plugin-promise":"^4.2.1","execa":"^4.0.0","fastbench":"^1.0.1","flush-write-stream":"^2.0.0","import-fresh":"^3.2.1","log":"^6.0.0","loglevel":"^1.6.7","pino-pretty":"^4.1.0","pre-commit":"^1.2.2","proxyquire":"^2.1.3","pump":"^3.0.0","semver":"^7.0.0","split2":"^3.1.1","steed":"^1.1.3","strip-ansi":"^6.0.0","tap":"^14.10.8","tape":"^5.0.0","through2":"^4.0.0","winston":"^3.3.3"},"dependencies":{"fast-redact":"^3.0.0","fast-safe-stringify":"^2.0.7","flatstr":"^1.0.12","pino-std-serializers":"^3.1.0","quick-format-unescaped":"^4.0.1","sonic-boom":"^1.0.2"},"_resolved":"https://registry.npmjs.org/pino/-/pino-6.11.1.tgz","_integrity":"sha512-PoDR/4jCyaP1k2zhuQ4N0NuhaMtei+C9mUHBRRJQujexl/bq3JkeL2OC23ada6Np3zeUMHbO4TGzY2D/rwZX3w==","_from":"pino@6.11.1"};
 
 /***/ }),
 /* 930 */,
