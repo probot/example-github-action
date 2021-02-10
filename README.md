@@ -2,7 +2,7 @@
 
 > This repository is an example of how to create a GitHub Action using Probot
 
-[![Build Status](https://github.com/octokit/request-action/workflows/Test/badge.svg)](https://github.com/octokit/request-action/actions)
+[![Build Status](https://github.com/probot/example-github-action/workflows/Test/badge.svg)](https://github.com/probot/example-github-action/actions)
 
 If you build a GitHub Action using Probot, we recommend you watch this repository as we will keep updating it implementing best practises and new APIs.
 
@@ -27,6 +27,22 @@ jobs:
 ```
 
 See the action in ... action [#1](https://github.com/probot/example-github-action/issues/1)
+
+Alternatively, you can pass the token with `with:`
+
+```yml
+- uses: probot/exmaple-github-action@v1
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    # or
+    # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Configuration
+
+GitHub App authentication via `APP_ID`/`PRIVATE_KEY` is not supported. Only token authentication is supported by setting `GITHUB_TOKEN`.
+
+Note that the `LOG_LEVEL` environment variable is ignored. Debug logs are not logged by default in GitHub Actions, but can be enabled by creating a `ACTIONS_STEP_DEBUG` repository secret and setting it to 1.
 
 ## How it works
 

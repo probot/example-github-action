@@ -8,7 +8,7 @@ nock.disableNetConnect();
 process.env.LOG_LEVEL = "fatal";
 const { Probot, ProbotOctokit } = require("probot");
 
-const app = require("./app");
+const app = require("../app");
 
 /** @type {import('probot').Probot */
 let probot;
