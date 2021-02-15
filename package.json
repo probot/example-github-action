@@ -16,7 +16,7 @@
   "devDependencies": {
     "@semantic-release/git": "^9.0.0",
     "@zeit/ncc": "^0.22.3",
-    "semantic-release": "^17.3.8",
+    "semantic-release": "^17.3.9",
     "nock": "^13.0.7",
     "uvu": "^0.5.1"
   },
