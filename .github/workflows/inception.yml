@@ -1,9 +1,8 @@
 name: Say Hello World
-on:
+"on":
   issues:
     types:
       - opened
-
 jobs:
   issuesOpened:
     runs-on: ubuntu-latest
@@ -12,6 +11,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           cache: npm
+          node-version: 16
       - run: npm ci
       - run: npm run build
       - uses: ./
