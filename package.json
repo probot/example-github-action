@@ -17,7 +17,7 @@
     "@semantic-release/git": "^10.0.1",
     "@zeit/ncc": "^0.22.3",
     "semantic-release": "^18.0.0",
-    "nock": "^13.1.4",
+    "nock": "^13.2.0",
     "uvu": "^0.5.2"
   },
   "release": {
