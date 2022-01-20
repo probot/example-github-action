@@ -30432,7 +30432,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VERSION = void 0;
 // The version is set automatically before publish to npm
-exports.VERSION = "12.1.4";
+exports.VERSION = "12.2.1";
 //# sourceMappingURL=version.js.map
 
 /***/ }),
@@ -84760,7 +84760,7 @@ class DataHandler {
             case "message":
                 if (this.redis.listeners("message").length > 0) {
                     // Check if there're listeners to avoid unnecessary `toString()`.
-                    this.redis.emit("message", reply[1].toString(), reply[2].toString());
+                    this.redis.emit("message", reply[1].toString(), reply[2] ? reply[2].toString() : '');
                 }
                 this.redis.emit("messageBuffer", reply[1], reply[2]);
                 break;
@@ -86137,7 +86137,7 @@ class ManifestCreation {
     }
     get createAppUrl() {
         const githubHost = process.env.GHE_HOST || `github.com`;
-        return `${process.env.GHE_PROTOCOL || "https"}://${githubHost}/settings/apps/new`;
+        return `${process.env.GHE_PROTOCOL || "https"}://${githubHost}${process.env.GH_ORG ? "/organizations/".concat(process.env.GH_ORG) : ""}/settings/apps/new`;
     }
 }
 exports.ManifestCreation = ManifestCreation;
