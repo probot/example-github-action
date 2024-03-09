@@ -1,7 +1,7 @@
 /**
  * @param {import('probot').Probot} app
  */
-module.exports = (app) => {
+export default (app) => {
   app.log("Yay! The app was loaded!");
 
   app.on("issues.opened", async (context) => {

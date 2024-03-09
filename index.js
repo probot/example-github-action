@@ -1,4 +1,4 @@
-const { run } = require("@probot/adapter-github-actions");
-const app = require("./app");
+import { run } from "@probot/adapter-github-actions";
+import app from "./app";
 
 run(app);
