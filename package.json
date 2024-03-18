@@ -4,7 +4,6 @@
   "private": true,
   "description": "Probot & GitHub Action example",
   "scripts": {
-    "build": "esbuild index.js --bundle --platform=node --outfile=dist/index.js --format=esm",
     "test": "node --test"
   },
   "author": "Gregor Martynus (https://twitter.com/gr2m)",
@@ -15,7 +14,6 @@
   },
   "devDependencies": {
     "@semantic-release/git": "^10.0.1",
-    "esbuild": "^0.20.1",
     "nock": "^14.0.0-beta.5",
     "semantic-release": "^23.0.0"
   },
