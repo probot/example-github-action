@@ -1,19 +1,18 @@
-const { suite } = require("uvu");
-const assert = require("uvu/assert");
+import { beforeEach, test } from "node:test";
+import assert from "node:assert";
 
-const nock = require("nock");
+import nock from "nock";
 nock.disableNetConnect();
 
 // disable Probot logs
 process.env.LOG_LEVEL = "fatal";
-const { Probot, ProbotOctokit } = require("probot");
+import { Probot, ProbotOctokit } from "probot";
 
-const app = require("../app");
+import app from "../app.js";
 
 /** @type {import('probot').Probot */
 let probot;
-const test = suite("app");
-test.before.each(() => {
+beforeEach(() => {
   probot = new Probot({
     id: 1,
     githubToken: "test",
@@ -31,7 +30,7 @@ test("recieves issues.opened event", async function () {
     .post(
       "/repos/probot/example-github-action/issues/1/comments",
       (requestBody) => {
-        assert.equal(requestBody, { body: "Hello, World!" });
+        assert.deepStrictEqual(requestBody, { body: "Hello, World!" });
 
         return true;
       }
@@ -55,7 +54,5 @@ test("recieves issues.opened event", async function () {
     },
   });
 
-  assert.equal(mock.activeMocks(), []);
+  assert.deepStrictEqual(mock.activeMocks(), []);
 });
-
-test.run();
