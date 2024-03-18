@@ -7,13 +7,6 @@ jobs:
   issuesOpened:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          cache: npm
-          node-version: 20
-      - run: npm ci
-      - run: npm run build
-      - uses: ./
+      - uses: probot/example-github-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -21,7 +21,7 @@ jobs:
   sayHelloWorld:
     runs-on: ubuntu-latest
     steps:
-      - uses: probot/example-github-action@v1
+      - uses: probot/example-github-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -31,7 +31,7 @@ See the action in ... action [#1](https://github.com/probot/example-github-actio
 Alternatively, you can pass the token with `with:`
 
 ```yml
-- uses: probot/example-github-action@v1
+- uses: probot/example-github-action@v2
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     # or
@@ -57,7 +57,7 @@ This repository is continuously publishing new versions to the special `v1` bran
 1. `"build": "ncc build index.js -o dist"` script - bundle the app into `dist/index.js`
 2. `"release"` - configure publishing from the `"main"` branch, and configure the `git` plugin to add a commit after publishing
 
-The other relevant bit is [`.github/workflows/release.yml`](.github/workflows/release.yml), which is run on each push to the default branch (`main`). It installs all dependencies, runs the `build` script, runs semantic-release which creates the GitHub release based on semantic commit message conventions (`fix: ...`, `feat: ...`) and commits the `dist/index.js` file. Then it pushes the changes to the `v1` branch, so that users will always get the latest version when referencing `probot/exmaple-github-action@v1`. If there should ever be a breaking change, we would change the publish branch to `v2`, etc.
+The other relevant bit is [`.github/workflows/release.yml`](.github/workflows/release.yml), which is run on each push to the default branch (`main`). It installs all dependenciesand runs semantic-release which creates the GitHub release based on semantic commit message conventions (`fix: ...`, `feat: ...`). Then it pushes the changes to the `v2` branch, so that users will always get the latest version when referencing `probot/exmaple-github-action@v2`. If there should ever be a breaking change, we would change the publish branch to `v3`, etc.
 
 ## License
 
