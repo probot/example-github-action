@@ -4932,9 +4932,9 @@ var require_split2 = __commonJS({
   }
 });
 
-// node_modules/pino-abstract-transport/index.js
+// node_modules/pino-pretty/node_modules/pino-abstract-transport/index.js
 var require_pino_abstract_transport = __commonJS({
-  "node_modules/pino-abstract-transport/index.js"(exports2, module2) {
+  "node_modules/pino-pretty/node_modules/pino-abstract-transport/index.js"(exports2, module2) {
     "use strict";
     var metadata = Symbol.for("pino.metadata");
     var split = require_split2();
@@ -5376,129 +5376,73 @@ var require_delete_log_property = __commonJS({
 var require_cjs2 = __commonJS({
   "node_modules/fast-copy/dist/cjs/index.cjs"(exports2) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
     var toStringFunction = Function.prototype.toString;
-    var create = Object.create;
     var toStringObject = Object.prototype.toString;
-    var LegacyCache = (
-      /** @class */
-      (function() {
-        function LegacyCache2() {
-          this._keys = [];
-          this._values = [];
-        }
-        LegacyCache2.prototype.has = function(key) {
-          return !!~this._keys.indexOf(key);
-        };
-        LegacyCache2.prototype.get = function(key) {
-          return this._values[this._keys.indexOf(key)];
-        };
-        LegacyCache2.prototype.set = function(key, value) {
-          this._keys.push(key);
-          this._values.push(value);
-        };
-        return LegacyCache2;
-      })()
-    );
-    function createCacheLegacy() {
-      return new LegacyCache();
-    }
-    function createCacheModern() {
-      return /* @__PURE__ */ new WeakMap();
-    }
-    var createCache = typeof WeakMap !== "undefined" ? createCacheModern : createCacheLegacy;
     function getCleanClone(prototype) {
       if (!prototype) {
-        return create(null);
+        return /* @__PURE__ */ Object.create(null);
       }
-      var Constructor = prototype.constructor;
+      const Constructor = prototype.constructor;
       if (Constructor === Object) {
-        return prototype === Object.prototype ? {} : create(prototype);
+        return prototype === Object.prototype ? {} : Object.create(prototype);
       }
       if (Constructor && ~toStringFunction.call(Constructor).indexOf("[native code]")) {
         try {
           return new Constructor();
-        } catch (_a2) {
+        } catch (_a) {
         }
       }
-      return create(prototype);
+      return Object.create(prototype);
     }
-    function getRegExpFlagsLegacy(regExp) {
-      var flags = "";
-      if (regExp.global) {
-        flags += "g";
+    function getTag(value) {
+      const stringTag = value[Symbol.toStringTag];
+      if (stringTag) {
+        return stringTag;
       }
-      if (regExp.ignoreCase) {
-        flags += "i";
-      }
-      if (regExp.multiline) {
-        flags += "m";
-      }
-      if (regExp.unicode) {
-        flags += "u";
-      }
-      if (regExp.sticky) {
-        flags += "y";
-      }
-      return flags;
-    }
-    function getRegExpFlagsModern(regExp) {
-      return regExp.flags;
-    }
-    var getRegExpFlags = /test/g.flags === "g" ? getRegExpFlagsModern : getRegExpFlagsLegacy;
-    function getTagLegacy(value) {
-      var type = toStringObject.call(value);
+      const type = toStringObject.call(value);
       return type.substring(8, type.length - 1);
     }
-    function getTagModern(value) {
-      return value[Symbol.toStringTag] || getTagLegacy(value);
+    var { hasOwnProperty, propertyIsEnumerable } = Object.prototype;
+    function copyOwnDescriptor(original, clone, property, state) {
+      const ownDescriptor = Object.getOwnPropertyDescriptor(original, property) || {
+        configurable: true,
+        enumerable: true,
+        value: original[property],
+        writable: true
+      };
+      const descriptor = ownDescriptor.get || ownDescriptor.set ? ownDescriptor : {
+        configurable: ownDescriptor.configurable,
+        enumerable: ownDescriptor.enumerable,
+        value: state.copier(ownDescriptor.value, state),
+        writable: ownDescriptor.writable
+      };
+      try {
+        Object.defineProperty(clone, property, descriptor);
+      } catch (_a) {
+        clone[property] = descriptor.get ? descriptor.get() : descriptor.value;
+      }
     }
-    var getTag = typeof Symbol !== "undefined" ? getTagModern : getTagLegacy;
-    var defineProperty = Object.defineProperty;
-    var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-    var getOwnPropertyNames = Object.getOwnPropertyNames;
-    var getOwnPropertySymbols = Object.getOwnPropertySymbols;
-    var _a = Object.prototype;
-    var hasOwnProperty = _a.hasOwnProperty;
-    var propertyIsEnumerable = _a.propertyIsEnumerable;
-    var SUPPORTS_SYMBOL = typeof getOwnPropertySymbols === "function";
-    function getStrictPropertiesModern(object) {
-      return getOwnPropertyNames(object).concat(getOwnPropertySymbols(object));
-    }
-    var getStrictProperties = SUPPORTS_SYMBOL ? getStrictPropertiesModern : getOwnPropertyNames;
     function copyOwnPropertiesStrict(value, clone, state) {
-      var properties = getStrictProperties(value);
-      for (var index2 = 0, length_1 = properties.length, property = void 0, descriptor = void 0; index2 < length_1; ++index2) {
-        property = properties[index2];
-        if (property === "callee" || property === "caller") {
-          continue;
-        }
-        descriptor = getOwnPropertyDescriptor(value, property);
-        if (!descriptor) {
-          clone[property] = state.copier(value[property], state);
-          continue;
-        }
-        if (!descriptor.get && !descriptor.set) {
-          descriptor.value = state.copier(descriptor.value, state);
-        }
-        try {
-          defineProperty(clone, property, descriptor);
-        } catch (error) {
-          clone[property] = descriptor.value;
-        }
+      const names = Object.getOwnPropertyNames(value);
+      for (let index = 0; index < names.length; ++index) {
+        copyOwnDescriptor(value, clone, names[index], state);
+      }
+      const symbols = Object.getOwnPropertySymbols(value);
+      for (let index = 0; index < symbols.length; ++index) {
+        copyOwnDescriptor(value, clone, symbols[index], state);
       }
       return clone;
     }
     function copyArrayLoose(array, state) {
-      var clone = new state.Constructor();
+      const clone = new state.Constructor();
       state.cache.set(array, clone);
-      for (var index2 = 0, length_2 = array.length; index2 < length_2; ++index2) {
-        clone[index2] = state.copier(array[index2], state);
+      for (let index = 0; index < array.length; ++index) {
+        clone[index] = state.copier(array[index], state);
       }
       return clone;
     }
     function copyArrayStrict(array, state) {
-      var clone = new state.Constructor();
+      const clone = new state.Constructor();
       state.cache.set(array, clone);
       return copyOwnPropertiesStrict(array, clone, state);
     }
@@ -5515,9 +5459,9 @@ var require_cjs2 = __commonJS({
       return new state.Constructor(date.getTime());
     }
     function copyMapLoose(map, state) {
-      var clone = new state.Constructor();
+      const clone = new state.Constructor();
       state.cache.set(map, clone);
-      map.forEach(function(value, key) {
+      map.forEach((value, key) => {
         clone.set(key, state.copier(value, state));
       });
       return clone;
@@ -5525,36 +5469,25 @@ var require_cjs2 = __commonJS({
     function copyMapStrict(map, state) {
       return copyOwnPropertiesStrict(map, copyMapLoose(map, state), state);
     }
-    function copyObjectLooseLegacy(object, state) {
-      var clone = getCleanClone(state.prototype);
+    function copyObjectLoose(object, state) {
+      const clone = getCleanClone(state.prototype);
       state.cache.set(object, clone);
-      for (var key in object) {
+      for (const key in object) {
         if (hasOwnProperty.call(object, key)) {
           clone[key] = state.copier(object[key], state);
         }
       }
-      return clone;
-    }
-    function copyObjectLooseModern(object, state) {
-      var clone = getCleanClone(state.prototype);
-      state.cache.set(object, clone);
-      for (var key in object) {
-        if (hasOwnProperty.call(object, key)) {
-          clone[key] = state.copier(object[key], state);
-        }
-      }
-      var symbols = getOwnPropertySymbols(object);
-      for (var index2 = 0, length_3 = symbols.length, symbol = void 0; index2 < length_3; ++index2) {
-        symbol = symbols[index2];
+      const symbols = Object.getOwnPropertySymbols(object);
+      for (let index = 0; index < symbols.length; ++index) {
+        const symbol = symbols[index];
         if (propertyIsEnumerable.call(object, symbol)) {
           clone[symbol] = state.copier(object[symbol], state);
         }
       }
       return clone;
     }
-    var copyObjectLoose = SUPPORTS_SYMBOL ? copyObjectLooseModern : copyObjectLooseLegacy;
     function copyObjectStrict(object, state) {
-      var clone = getCleanClone(state.prototype);
+      const clone = getCleanClone(state.prototype);
       state.cache.set(object, clone);
       return copyOwnPropertiesStrict(object, clone, state);
     }
@@ -5562,7 +5495,7 @@ var require_cjs2 = __commonJS({
       return new state.Constructor(primitiveObject.valueOf());
     }
     function copyRegExp(regExp, state) {
-      var clone = new state.Constructor(regExp.source, getRegExpFlags(regExp));
+      const clone = new state.Constructor(regExp.source, regExp.flags);
       clone.lastIndex = regExp.lastIndex;
       return clone;
     }
@@ -5570,9 +5503,9 @@ var require_cjs2 = __commonJS({
       return value;
     }
     function copySetLoose(set2, state) {
-      var clone = new state.Constructor();
+      const clone = new state.Constructor();
       state.cache.set(set2, clone);
-      set2.forEach(function(value) {
+      set2.forEach((value) => {
         clone.add(state.copier(value, state));
       });
       return clone;
@@ -5580,64 +5513,64 @@ var require_cjs2 = __commonJS({
     function copySetStrict(set2, state) {
       return copyOwnPropertiesStrict(set2, copySetLoose(set2, state), state);
     }
-    var isArray = Array.isArray;
-    var assign = Object.assign;
-    var getPrototypeOf = Object.getPrototypeOf || (function(obj) {
-      return obj.__proto__;
-    });
-    var DEFAULT_LOOSE_OPTIONS = {
-      array: copyArrayLoose,
-      arrayBuffer: copyArrayBuffer,
-      blob: copyBlob,
-      dataView: copyDataView,
-      date: copyDate,
-      error: copySelf,
-      map: copyMapLoose,
-      object: copyObjectLoose,
-      regExp: copyRegExp,
-      set: copySetLoose
-    };
-    var DEFAULT_STRICT_OPTIONS = assign({}, DEFAULT_LOOSE_OPTIONS, {
-      array: copyArrayStrict,
-      map: copyMapStrict,
-      object: copyObjectStrict,
-      set: copySetStrict
-    });
-    function getTagSpecificCopiers(options2) {
+    function createDefaultCache() {
+      return /* @__PURE__ */ new WeakMap();
+    }
+    function getOptions({ createCache: createCacheOverride, methods: methodsOverride, strict }) {
+      const defaultMethods = {
+        array: strict ? copyArrayStrict : copyArrayLoose,
+        arrayBuffer: copyArrayBuffer,
+        blob: copyBlob,
+        dataView: copyDataView,
+        date: copyDate,
+        error: copySelf,
+        map: strict ? copyMapStrict : copyMapLoose,
+        object: strict ? copyObjectStrict : copyObjectLoose,
+        regExp: copyRegExp,
+        set: strict ? copySetStrict : copySetLoose
+      };
+      const methods = methodsOverride ? Object.assign(defaultMethods, methodsOverride) : defaultMethods;
+      const copiers = getTagSpecificCopiers(methods);
+      const createCache = createCacheOverride || createDefaultCache;
+      if (!copiers.Object || !copiers.Array) {
+        throw new Error("An object and array copier must be provided.");
+      }
+      return { createCache, copiers, methods, strict: Boolean(strict) };
+    }
+    function getTagSpecificCopiers(methods) {
       return {
-        Arguments: options2.object,
-        Array: options2.array,
-        ArrayBuffer: options2.arrayBuffer,
-        Blob: options2.blob,
+        Arguments: methods.object,
+        Array: methods.array,
+        ArrayBuffer: methods.arrayBuffer,
+        Blob: methods.blob,
         Boolean: copyPrimitiveWrapper,
-        DataView: options2.dataView,
-        Date: options2.date,
-        Error: options2.error,
-        Float32Array: options2.arrayBuffer,
-        Float64Array: options2.arrayBuffer,
-        Int8Array: options2.arrayBuffer,
-        Int16Array: options2.arrayBuffer,
-        Int32Array: options2.arrayBuffer,
-        Map: options2.map,
+        DataView: methods.dataView,
+        Date: methods.date,
+        Error: methods.error,
+        Float32Array: methods.arrayBuffer,
+        Float64Array: methods.arrayBuffer,
+        Int8Array: methods.arrayBuffer,
+        Int16Array: methods.arrayBuffer,
+        Int32Array: methods.arrayBuffer,
+        Map: methods.map,
         Number: copyPrimitiveWrapper,
-        Object: options2.object,
+        Object: methods.object,
         Promise: copySelf,
-        RegExp: options2.regExp,
-        Set: options2.set,
+        RegExp: methods.regExp,
+        Set: methods.set,
         String: copyPrimitiveWrapper,
         WeakMap: copySelf,
         WeakSet: copySelf,
-        Uint8Array: options2.arrayBuffer,
-        Uint8ClampedArray: options2.arrayBuffer,
-        Uint16Array: options2.arrayBuffer,
-        Uint32Array: options2.arrayBuffer,
-        Uint64Array: options2.arrayBuffer
+        Uint8Array: methods.arrayBuffer,
+        Uint8ClampedArray: methods.arrayBuffer,
+        Uint16Array: methods.arrayBuffer,
+        Uint32Array: methods.arrayBuffer,
+        Uint64Array: methods.arrayBuffer
       };
     }
-    function createCopier(options2) {
-      var normalizedOptions = assign({}, DEFAULT_LOOSE_OPTIONS, options2);
-      var tagSpecificCopiers = getTagSpecificCopiers(normalizedOptions);
-      var array = tagSpecificCopiers.Array, object = tagSpecificCopiers.Object;
+    function createCopier(options2 = {}) {
+      const { createCache, copiers } = getOptions(options2);
+      const { Array: copyArray, Object: copyObject } = copiers;
       function copier(value, state) {
         state.prototype = state.Constructor = void 0;
         if (!value || typeof value !== "object") {
@@ -5646,21 +5579,21 @@ var require_cjs2 = __commonJS({
         if (state.cache.has(value)) {
           return state.cache.get(value);
         }
-        state.prototype = getPrototypeOf(value);
+        state.prototype = Object.getPrototypeOf(value);
         state.Constructor = state.prototype && state.prototype.constructor;
         if (!state.Constructor || state.Constructor === Object) {
-          return object(value, state);
+          return copyObject(value, state);
         }
-        if (isArray(value)) {
-          return array(value, state);
+        if (Array.isArray(value)) {
+          return copyArray(value, state);
         }
-        var tagSpecificCopier = tagSpecificCopiers[getTag(value)];
+        const tagSpecificCopier = copiers[getTag(value)];
         if (tagSpecificCopier) {
           return tagSpecificCopier(value, state);
         }
-        return typeof value.then === "function" ? value : object(value, state);
+        return typeof value.then === "function" ? value : copyObject(value, state);
       }
-      return function copy(value) {
+      return function copy2(value) {
         return copier(value, {
           Constructor: void 0,
           cache: createCache(),
@@ -5669,15 +5602,11 @@ var require_cjs2 = __commonJS({
         });
       };
     }
-    function createStrictCopier(options2) {
-      return createCopier(assign({}, DEFAULT_STRICT_OPTIONS, options2));
-    }
-    var copyStrict = createStrictCopier({});
-    var index = createCopier({});
+    var copyStrict = createCopier({ strict: true });
+    var copy = createCopier();
+    exports2.copy = copy;
     exports2.copyStrict = copyStrict;
     exports2.createCopier = createCopier;
-    exports2.createStrictCopier = createStrictCopier;
-    exports2.default = index;
   }
 });
 
@@ -6599,7 +6528,8 @@ var require_prettify_message = __commonJS({
               const condition = useOnlyCustomProps ? customLevels === void 0 : customLevels[level] === void 0;
               return condition ? LEVELS[level] : customLevels[level];
             }
-            return getPropertyValue(log, p1) || "";
+            const value = getPropertyValue(log, p1);
+            return value !== void 0 ? value : "";
           }
         );
         return colorizer.message(message);
@@ -7057,9 +6987,9 @@ var require_pino_pretty = __commonJS({
   }
 });
 
-// node_modules/@octokit/request/node_modules/fast-content-type-parse/index.js
+// node_modules/fast-content-type-parse/index.js
 var require_fast_content_type_parse = __commonJS({
-  "node_modules/@octokit/request/node_modules/fast-content-type-parse/index.js"(exports2, module2) {
+  "node_modules/fast-content-type-parse/index.js"(exports2, module2) {
     "use strict";
     var NullObject = function NullObject2() {
     };
@@ -9110,7 +9040,7 @@ var require_Alias = __commonJS({
           toJS.toJS(source, null, ctx);
           data = anchors2.get(source);
         }
-        if (!data || data.res === void 0) {
+        if (data?.res === void 0) {
           const msg = "This should not happen: Alias anchor was not resolved?";
           throw new ReferenceError(msg);
         }
@@ -10060,7 +9990,7 @@ ${indent}:`;
 ${stringifyComment.indentComment(cs, ctx.indent)}`;
         }
         if (valueStr === "" && !ctx.inFlow) {
-          if (ws === "\n")
+          if (ws === "\n" && valueComment)
             ws = "\n\n";
         } else {
           ws += `
@@ -10805,7 +10735,7 @@ var require_stringifyNumber = __commonJS({
       const num = typeof value === "number" ? value : Number(value);
       if (!isFinite(num))
         return isNaN(num) ? ".nan" : num < 0 ? "-.inf" : ".inf";
-      let n = JSON.stringify(value);
+      let n = Object.is(value, -0) ? "-0" : JSON.stringify(value);
       if (!format && minFractionDigits && (!tag || tag === "tag:yaml.org,2002:float") && /^\d/.test(n)) {
         let i = n.indexOf(".");
         if (i < 0) {
@@ -12173,7 +12103,7 @@ var require_errors = __commonJS({
       if (/[^ ]/.test(lineStr)) {
         let count = 1;
         const end = error.linePos[1];
-        if (end && end.line === line && end.col > col) {
+        if (end?.line === line && end.col > col) {
           count = Math.max(1, Math.min(end.col - col, 80 - ci));
         }
         const pointer = " ".repeat(ci) + "^".repeat(count);
@@ -12536,7 +12466,7 @@ var require_resolve_block_seq = __commonJS({
         });
         if (!props.found) {
           if (props.anchor || props.tag || value) {
-            if (value && value.type === "block-seq")
+            if (value?.type === "block-seq")
               onError(props.end, "BAD_INDENT", "All sequence items must start at the same column");
             else
               onError(offset, "MISSING_CHAR", "Sequence item without - indicator");
@@ -12733,7 +12663,7 @@ var require_resolve_flow_collection = __commonJS({
                 onError(valueProps.found, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit flow sequence key");
             }
           } else if (value) {
-            if ("source" in value && value.source && value.source[0] === ":")
+            if ("source" in value && value.source?.[0] === ":")
               onError(value, "MISSING_CHAR", `Missing space after : in ${fcName}`);
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
@@ -12770,7 +12700,7 @@ var require_resolve_flow_collection = __commonJS({
       const expectedEnd = isMap ? "}" : "]";
       const [ce, ...ee] = fc.end;
       let cePos = offset;
-      if (ce && ce.source === expectedEnd)
+      if (ce?.source === expectedEnd)
         cePos = ce.offset + ce.source.length;
       else {
         const name = fcName[0].toUpperCase() + fcName.substring(1);
@@ -12837,7 +12767,7 @@ var require_compose_collection = __commonJS({
       let tag = ctx.schema.tags.find((t) => t.tag === tagName && t.collection === expType);
       if (!tag) {
         const kt = ctx.schema.knownTags[tagName];
-        if (kt && kt.collection === expType) {
+        if (kt?.collection === expType) {
           ctx.schema.tags.push(Object.assign({}, kt, { default: false }));
           tag = kt;
         } else {
@@ -14935,7 +14865,7 @@ var require_parser = __commonJS({
       }
       *step() {
         const top = this.peek(1);
-        if (this.type === "doc-end" && (!top || top.type !== "doc-end")) {
+        if (this.type === "doc-end" && top?.type !== "doc-end") {
           while (this.stack.length > 0)
             yield* this.pop();
           this.stack.push({
@@ -15413,7 +15343,7 @@ var require_parser = __commonJS({
           do {
             yield* this.pop();
             top = this.peek(1);
-          } while (top && top.type === "flow-collection");
+          } while (top?.type === "flow-collection");
         } else if (fc.end.length === 0) {
           switch (this.type) {
             case "comma":
@@ -20359,9 +20289,9 @@ var require_stream_duplex = __commonJS({
   }
 });
 
-// node_modules/string_decoder/node_modules/safe-buffer/index.js
+// node_modules/safe-buffer/index.js
 var require_safe_buffer = __commonJS({
-  "node_modules/string_decoder/node_modules/safe-buffer/index.js"(exports2, module2) {
+  "node_modules/safe-buffer/index.js"(exports2, module2) {
     var buffer = __require("buffer");
     var Buffer3 = buffer.Buffer;
     function copyProps(src, dst) {
